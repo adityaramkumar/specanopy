@@ -52,14 +52,12 @@ class TestParseSpecFile:
         body = "\n## Same body\n\nIdentical content.\n"
 
         f1 = tmp_path / "v1.spec.md"
-        f1.write_text(
-            f"---\nid: a\nversion: '1.0.0'\nstatus: draft\ndepends_on:\n  - contracts/a\n---\n{body}"
-        )
+        fm1 = "---\nid: a\nversion: '1.0.0'\nstatus: draft\ndepends_on:\n  - contracts/a\n---\n"
+        f1.write_text(f"{fm1}{body}")
 
         f2 = tmp_path / "v2.spec.md"
-        f2.write_text(
-            f"---\nid: a\nversion: '1.0.0'\nstatus: draft\ndepends_on:\n  - contracts/b\n---\n{body}"
-        )
+        fm2 = "---\nid: a\nversion: '1.0.0'\nstatus: draft\ndepends_on:\n  - contracts/b\n---\n"
+        f2.write_text(f"{fm2}{body}")
 
         assert parse_spec_file(f1).hash != parse_spec_file(f2).hash
 
