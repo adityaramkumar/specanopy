@@ -4,7 +4,6 @@ import pytest
 
 from specanopy.parser import discover_specs, parse_spec_file
 
-
 VALID_SPEC = """\
 ---
 id: test/example

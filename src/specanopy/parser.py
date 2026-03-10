@@ -15,9 +15,7 @@ def parse_spec_file(file_path: Path) -> SpecNode:
 
     missing = [f for f in ("id", "version", "status") if f not in meta]
     if missing:
-        raise ValueError(
-            f"{file_path}: missing required frontmatter fields: {', '.join(missing)}"
-        )
+        raise ValueError(f"{file_path}: missing required frontmatter fields: {', '.join(missing)}")
 
     # Hash the body only — NOT the frontmatter. The frontmatter contains the
     # hash field itself and mutable metadata like status, so including it would

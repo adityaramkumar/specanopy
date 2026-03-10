@@ -36,9 +36,7 @@ def is_stale(map: HashMap, node_id: str, current_hash: str) -> bool:
     return entry.spec_hash != current_hash
 
 
-def update(
-    map: HashMap, node_id: str, hash: str, generated_files: list[str]
-) -> None:
+def update(map: HashMap, node_id: str, hash: str, generated_files: list[str]) -> None:
     """Upsert a hash map entry with the current timestamp."""
     map.nodes[node_id] = HashMapEntry(
         spec_hash=hash,

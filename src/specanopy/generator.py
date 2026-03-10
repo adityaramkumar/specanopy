@@ -9,7 +9,7 @@ from pathlib import Path
 import click
 from google import genai
 
-from specanopy.types import SpecNode, SpecanopyConfig
+from specanopy.types import SpecanopyConfig, SpecNode
 
 TRACEABILITY_TEMPLATE = (
     "# generated_from: {node_id}\n"
@@ -31,8 +31,7 @@ def _get_api_key() -> str:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise click.ClickException(
-            "GEMINI_API_KEY not set. Export it:\n\n"
-            "  export GEMINI_API_KEY=your-key-here\n"
+            "GEMINI_API_KEY not set. Export it:\n\n  export GEMINI_API_KEY=your-key-here\n"
         )
     return key
 
@@ -68,11 +67,7 @@ def generate(
 
     dep_context = ""
     for dep in dep_specs or []:
-        dep_context += (
-            f"\n--- DEPENDENCY: {dep.id} ---\n"
-            f"{dep.content}\n"
-            f"--- END DEPENDENCY ---\n"
-        )
+        dep_context += f"\n--- DEPENDENCY: {dep.id} ---\n{dep.content}\n--- END DEPENDENCY ---\n"
 
     prompt = (
         f"Spec ID: {node.id}\n"

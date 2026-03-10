@@ -23,9 +23,7 @@ def build_graph(nodes: list[SpecNode]) -> SpecGraph:
     for node in nodes:
         for dep_id in node.depends_on:
             if dep_id not in graph.nodes:
-                raise ValueError(
-                    f"{node.id} depends on {dep_id}, but that spec does not exist."
-                )
+                raise ValueError(f"{node.id} depends on {dep_id}, but that spec does not exist.")
             graph.dependents[dep_id].append(node.id)
 
     return graph
@@ -102,9 +100,7 @@ def cascade(
     return topo_sort(graph, list(all_ids))
 
 
-def impact_summary(
-    graph: SpecGraph, changed_ids: list[str]
-) -> dict:
+def impact_summary(graph: SpecGraph, changed_ids: list[str]) -> dict:
     """Return a structured summary of the cascade impact."""
     downstream = _collect_downstream(graph, set(changed_ids)) - set(changed_ids)
 

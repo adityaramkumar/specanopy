@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from specanopy import hashmap
 from specanopy.types import HashMap, HashMapEntry
 
@@ -10,9 +12,16 @@ class TestLoad:
         assert result.nodes == {}
 
     def test_existing_file(self, tmp_path):
-        (tmp_path / "hash-map.json").write_text(
-            '{"node/a": {"spec_hash": "abc", "generated_files": ["f.py"], "generated_at": "2025-01-01T00:00:00Z"}}'
+        data = json.dumps(
+            {
+                "node/a": {
+                    "spec_hash": "abc",
+                    "generated_files": ["f.py"],
+                    "generated_at": "2025-01-01T00:00:00Z",
+                }
+            }
         )
+        (tmp_path / "hash-map.json").write_text(data)
         result = hashmap.load(tmp_path)
         assert "node/a" in result.nodes
         assert result.nodes["node/a"].spec_hash == "abc"
@@ -20,9 +29,15 @@ class TestLoad:
 
 class TestSave:
     def test_roundtrip(self, tmp_path):
-        m = HashMap(nodes={
-            "x": HashMapEntry(spec_hash="h1", generated_files=["a.py", "b.py"], generated_at="2025-01-01T00:00:00Z"),
-        })
+        m = HashMap(
+            nodes={
+                "x": HashMapEntry(
+                    spec_hash="h1",
+                    generated_files=["a.py", "b.py"],
+                    generated_at="2025-01-01T00:00:00Z",
+                ),
+            }
+        )
         hashmap.save(tmp_path, m)
         loaded = hashmap.load(tmp_path)
 
@@ -44,15 +59,19 @@ class TestIsStale:
         assert hashmap.is_stale(m, "new/node", "somehash") is True
 
     def test_changed_hash(self):
-        m = HashMap(nodes={
-            "a": HashMapEntry(spec_hash="old", generated_files=[], generated_at=""),
-        })
+        m = HashMap(
+            nodes={
+                "a": HashMapEntry(spec_hash="old", generated_files=[], generated_at=""),
+            }
+        )
         assert hashmap.is_stale(m, "a", "new") is True
 
     def test_current(self):
-        m = HashMap(nodes={
-            "a": HashMapEntry(spec_hash="same", generated_files=[], generated_at=""),
-        })
+        m = HashMap(
+            nodes={
+                "a": HashMapEntry(spec_hash="same", generated_files=[], generated_at=""),
+            }
+        )
         assert hashmap.is_stale(m, "a", "same") is False
 
 

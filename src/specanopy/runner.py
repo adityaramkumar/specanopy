@@ -9,7 +9,7 @@ import click
 from specanopy import hashmap
 from specanopy.generator import generate
 from specanopy.graph import SpecGraph
-from specanopy.types import HashMap, SpecNode, SpecanopyConfig
+from specanopy.types import HashMap, SpecanopyConfig, SpecNode
 
 BACKUP_DIR = ".backup"
 

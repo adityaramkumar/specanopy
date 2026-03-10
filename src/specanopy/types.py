@@ -46,9 +46,7 @@ class HashMap:
 
     @classmethod
     def from_dict(cls, data: dict) -> HashMap:
-        return cls(
-            nodes={k: HashMapEntry.from_dict(v) for k, v in data.items()}
-        )
+        return cls(nodes={k: HashMapEntry.from_dict(v) for k, v in data.items()})
 
 
 @dataclass

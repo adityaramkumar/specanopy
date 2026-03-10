@@ -10,16 +10,17 @@ from click.testing import CliRunner
 from specanopy.cli import cli
 
 
-def _write_spec(root: Path, rel_path: str, spec_id: str, depends_on: list[str] | None = None) -> None:
+def _write_spec(
+    root: Path, rel_path: str, spec_id: str, depends_on: list[str] | None = None
+) -> None:
     dep_line = ""
     if depends_on:
         items = "\n".join(f"  - {d}" for d in depends_on)
         dep_line = f"depends_on:\n{items}\n"
     path = root / rel_path
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        f"---\nid: {spec_id}\nversion: '1.0.0'\nstatus: approved\n{dep_line}---\n\nSpec body for {spec_id}\n"
-    )
+    frontmatter = f"---\nid: {spec_id}\nversion: '1.0.0'\nstatus: approved\n{dep_line}---\n"
+    path.write_text(f"{frontmatter}\nSpec body for {spec_id}\n")
 
 
 def _setup_project(tmp_path: Path, specs: list[dict]) -> Path:
@@ -53,9 +54,12 @@ class TestStatus:
         assert "No spec files found" in result.output
 
     def test_shows_new(self, tmp_path):
-        proj = _setup_project(tmp_path, [
-            {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
-        ])
+        proj = _setup_project(
+            tmp_path,
+            [
+                {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
+            ],
+        )
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             os.chdir(proj)
@@ -68,9 +72,12 @@ class TestStatus:
 class TestBuild:
     @patch("specanopy.runner.generate", side_effect=_mock_generate)
     def test_updates_hashmap(self, mock_gen, tmp_path):
-        proj = _setup_project(tmp_path, [
-            {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
-        ])
+        proj = _setup_project(
+            tmp_path,
+            [
+                {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
+            ],
+        )
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             os.chdir(proj)
@@ -86,9 +93,12 @@ class TestBuild:
 
     @patch("specanopy.runner.generate", side_effect=_mock_generate)
     def test_idempotent(self, mock_gen, tmp_path):
-        proj = _setup_project(tmp_path, [
-            {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
-        ])
+        proj = _setup_project(
+            tmp_path,
+            [
+                {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
+            ],
+        )
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             os.chdir(proj)
@@ -101,15 +111,27 @@ class TestBuild:
 
 class TestImpact:
     def test_shows_cascade(self, tmp_path):
-        proj = _setup_project(tmp_path, [
-            {"path": "contracts/schema.spec.md", "id": "contracts/schema"},
-            {"path": "behaviors/auth/login.spec.md", "id": "auth/login", "depends_on": ["contracts/schema"]},
-        ])
-        # Mark the contract as current so only login is stale directly,
-        # making login appear as downstream of the contract change test.
+        proj = _setup_project(
+            tmp_path,
+            [
+                {"path": "contracts/schema.spec.md", "id": "contracts/schema"},
+                {
+                    "path": "behaviors/auth/login.spec.md",
+                    "id": "auth/login",
+                    "depends_on": ["contracts/schema"],
+                },
+            ],
+        )
         from specanopy.parser import parse_spec_file
+
         contract = parse_spec_file(proj / ".specanopy" / "contracts" / "schema.spec.md")
-        hm_data = {contract.id: {"spec_hash": contract.hash, "generated_files": [], "generated_at": ""}}
+        hm_data = {
+            contract.id: {
+                "spec_hash": contract.hash,
+                "generated_files": [],
+                "generated_at": "",
+            }
+        }
         (proj / ".specanopy" / "hash-map.json").write_text(json.dumps(hm_data))
 
         runner = CliRunner()
@@ -122,11 +144,15 @@ class TestImpact:
         assert "node(s) will be rebuilt" in result.output
 
     def test_up_to_date(self, tmp_path):
-        proj = _setup_project(tmp_path, [
-            {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
-        ])
+        proj = _setup_project(
+            tmp_path,
+            [
+                {"path": "behaviors/auth/login.spec.md", "id": "auth/login"},
+            ],
+        )
         # Pre-populate hashmap so node is current
         from specanopy.parser import parse_spec_file
+
         node = parse_spec_file(proj / ".specanopy" / "behaviors" / "auth" / "login.spec.md")
         hm_data = {node.id: {"spec_hash": node.hash, "generated_files": [], "generated_at": ""}}
         (proj / ".specanopy" / "hash-map.json").write_text(json.dumps(hm_data))
