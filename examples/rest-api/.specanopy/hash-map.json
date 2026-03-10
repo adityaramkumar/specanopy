@@ -1,0 +1,52 @@
+{
+  "contracts/api/users": {
+    "spec_hash": "5cf5cc538d1b81c8c474dcd47c648ab4c75be2232eb84c596a9c8849e1842678",
+    "generated_files": [
+      "src/domain/user/user.entity.ts",
+      "src/domain/user/user.repository.interface.ts",
+      "src/domain/auth/auth.service.ts",
+      "src/interfaces/http/auth.controller.ts",
+      "src/interfaces/http/dto/login.request.dto.ts",
+      "src/interfaces/http/dto/signup.request.dto.ts",
+      "src/tests/auth/login.test.ts",
+      "src/tests/auth/signup.test.ts"
+    ],
+    "generated_at": "2026-03-10T09:00:31.849907+00:00"
+  },
+  "behaviors/auth/login": {
+    "spec_hash": "00335c53ca3b6c799e009972b346695606d4fcc3a9ac7f85e4fc5ef7179f7657",
+    "generated_files": [
+      "src/auth/domain/auth.types.ts",
+      "src/auth/domain/login.service.ts",
+      "src/auth/interface/http/login.validator.ts",
+      "src/auth/interface/http/login.controller.ts",
+      "src/auth/interface/http/auth.routes.ts",
+      "src/tests/auth/login.test.ts"
+    ],
+    "generated_at": "2026-03-10T09:00:31.849970+00:00"
+  },
+  "behaviors/auth/signup": {
+    "spec_hash": "76de4dd5faf70d2285d59b7b3320eddbd2b2bb65e458c3cc5573b304b7c759d4",
+    "generated_files": [
+      "src/domain/signup/signup_repository.interface.ts",
+      "src/domain/signup/signup_validator.ts",
+      "src/domain/signup/signup_service.ts",
+      "src/infrastructure/web/signup_controller.ts",
+      "src/tests/auth/signup.test.ts"
+    ],
+    "generated_at": "2026-03-10T09:00:31.849980+00:00"
+  },
+  "behaviors/users/profile": {
+    "spec_hash": "d1f76ac9b12b1560185010f04ecae9a79ca4e17e78accdbabc8ee582b60bbd58",
+    "generated_files": [
+      "src/domain/user.ts",
+      "src/domain/user.repository.ts",
+      "src/services/user.service.ts",
+      "src/controllers/user.controller.ts",
+      "src/routes/user.routes.ts",
+      "src/tests/api/users/get_profile.test.ts",
+      "src/tests/api/users/update_profile.test.ts"
+    ],
+    "generated_at": "2026-03-10T09:00:31.849983+00:00"
+  }
+}

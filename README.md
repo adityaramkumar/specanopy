@@ -57,7 +57,20 @@ depends_on:
 ---
 ```
 
-Everything below the frontmatter is your spec -- prose, code snippets, whatever communicates the intent. See [`examples/`](examples/) for a complete working example.
+Everything below the frontmatter is your spec -- prose, code snippets, whatever communicates the intent.
+
+## Examples
+
+Four complete example projects in [`examples/`](examples/), each with specs and generated output:
+
+| Example | What it demonstrates |
+|---|---|
+| [`rest-api/`](examples/rest-api) | Auth + user management API. Dependency graph, cascade rebuilds, error handling specs. |
+| [`cli-tool/`](examples/cli-tool) | CSV/JSON file converter. Non-web use case, input/output contracts, code-in-spec. |
+| [`fullstack-todo/`](examples/fullstack-todo) | Todo app with backend + frontend. Cross-layer dependencies, component specs. |
+| [`data-pipeline/`](examples/data-pipeline) | Event processing ETL. Sequential pipeline specs, schema contracts, multi-step dependencies. |
+
+Skill files are shared across examples via symlinks from each example's `.specanopy/skills/` to `examples/shared-skills/`.
 
 ## Commands
 
