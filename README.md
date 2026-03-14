@@ -172,6 +172,20 @@ Starting Specdiff Graph UI Server at http://localhost:8000
 
 The UI displays the dependency graph, visualizes stale/current status, and shows the cascade depth blast radius for any potential changes. It automatically polls for changes as you edit specs.
 
+### `specanopy extract [source]`
+
+Read existing code and generate spec files. This is useful for reverse-engineering an existing codebase into Specanopy specs.
+
+```
+$ specanopy extract .
+Analyzing codebase in ....
+Sending payload to LLM to extract contracts...
+  Created contracts/models/user.spec.md
+Extracting behaviors and dependencies...
+  Created behaviors/auth/login.spec.md
+Extraction complete! Initialized 2 specs in .specanopy.
+```
+
 ## Configuration
 
 | Field | Default | Description |
