@@ -311,7 +311,21 @@ def extract(source: str, granularity: str) -> None:
     required=True,
     help="Task description for baseline comparison",
 )
-def eval_cmd(task_desc: str) -> None:
+@click.option(
+    "--source",
+    "-s",
+    "source_dir",
+    default=".",
+    help="Source directory of code to port (default: current dir)",
+)
+@click.option(
+    "--output-dir",
+    "-o",
+    "output_dir",
+    default="eval_output",
+    help="Directory to write generated files",
+)
+def eval_cmd(task_desc: str, source_dir: str, output_dir: str) -> None:
     """Compare spec-driven generation vs raw baseline on the same task."""
     config = _load_config(Path(".specdiff"))
     specs_dir = Path(config.specs_dir)
@@ -321,32 +335,54 @@ def eval_cmd(task_desc: str) -> None:
         click.echo("No spec files found.")
         return
 
-    # Combine all spec content for the baseline prompt
-    all_spec_content = "\n\n".join(
-        f"## {node.id} (v{node.version})\n{node.content}" for node in nodes
-    )
+    src_path = Path(source_dir)
+    if not src_path.exists():
+        raise click.ClickException(f"Source directory '{source_dir}' not found.")
+
+    # Read raw source code for the baseline
+    from specdiff.extract import _collect_source_files
+
+    source_files = _collect_source_files(src_path)
+    if not source_files:
+        raise click.ClickException(f"No source files found in '{source_dir}'.")
+
+    raw_source = ""
+    for sf in source_files:
+        raw_source += f"\n--- FILE: {sf['path']} ---\n{sf['content']}\n"
 
     from specdiff.eval import (
         check_compiles,
+        check_tests,
         format_comparison,
         run_baseline,
         run_specdiff_eval,
+        write_eval_output,
     )
     from specdiff.types import EvalResult
 
-    click.echo(f"Task: {task_desc}\n")
+    click.echo(f"Task: {task_desc}")
+    click.echo(f"Source: {src_path} ({len(source_files)} files)\n")
 
     # Run specdiff (spec-driven)
     click.echo("Running with specs (specdiff swarm)...")
     spec_metrics, spec_files = run_specdiff_eval(nodes, config, specs_dir)
+    spec_metrics.files_generated = len(spec_files)
     spec_metrics.compiles = check_compiles(spec_files, config.language)
+    spec_metrics.tests_pass, spec_metrics.tests_total, spec_metrics.tests_passed = check_tests(spec_files, config.language)
     click.echo(f"  Done. {len(spec_files)} files generated.\n")
 
-    # Run baseline (single prompt)
-    click.echo("Running without specs (single prompt)...")
-    base_metrics, base_files = run_baseline(task_desc, all_spec_content, config.model)
+    # Run baseline (raw source code, single prompt)
+    click.echo("Running without specs (single prompt + raw source)...")
+    base_metrics, base_files = run_baseline(task_desc, raw_source, config.model)
+    base_metrics.files_generated = len(base_files)
     base_metrics.compiles = check_compiles(base_files, config.language)
+    base_metrics.tests_pass, base_metrics.tests_total, base_metrics.tests_passed = check_tests(base_files, config.language)
     click.echo(f"  Done. {len(base_files)} files generated.\n")
+
+    # Write generated files to disk
+    out = Path(output_dir)
+    write_eval_output(out, spec_files, base_files)
+    click.echo(f"Generated files written to {out}/specdiff/ and {out}/baseline/\n")
 
     # Display comparison
     result = EvalResult(task=task_desc, specdiff=spec_metrics, baseline=base_metrics)

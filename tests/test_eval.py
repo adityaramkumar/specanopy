@@ -22,6 +22,8 @@ def test_run_metrics_defaults():
     assert m.output_tokens == 0
     assert m.wall_clock_seconds == 0.0
     assert m.compiles is None
+    assert m.tests_pass is None
+    assert m.files_generated == 0
 
 
 def test_eval_result_holds_both_runs():
@@ -58,7 +60,7 @@ def test_run_baseline_returns_metrics():
     with patch("specdiff.eval.get_gemini_client", return_value=mock_client):
         metrics, files = run_baseline(
             task="Port to Go",
-            spec_content="## My Spec\nDo stuff",
+            source_code="def hello():\n    print('hello')",
             model="gemini-2.5-flash",
         )
 
@@ -116,6 +118,10 @@ def test_format_comparison_table():
             output_tokens=8000,
             wall_clock_seconds=14.2,
             compiles=True,
+            tests_pass=True,
+            tests_total=5,
+            tests_passed=5,
+            files_generated=10,
         ),
         baseline=RunMetrics(
             llm_calls=1,
@@ -123,6 +129,7 @@ def test_format_comparison_table():
             output_tokens=38000,
             wall_clock_seconds=22.8,
             compiles=False,
+            files_generated=3,
         ),
     )
     table = format_comparison(result)
@@ -130,6 +137,9 @@ def test_format_comparison_table():
     assert "Without Specs" in table
     assert "12,000" in table
     assert "45,000" in table
+    assert "PASS (5/5)" in table
+    assert "No tests" in table
+    assert "10" in table
 
 
 def test_eval_command_no_specs(tmp_path):
@@ -141,7 +151,9 @@ def test_eval_command_no_specs(tmp_path):
 
     runner = CliRunner()
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(cli, ["eval", "--task", "Port to Go"])
+        Path("src").mkdir()
+        Path("src/main.py").write_text("def hello(): pass")
+        result = runner.invoke(cli, ["eval", "--task", "Port to Go", "--source", "src"])
     assert "No spec files found" in result.output
 
 
@@ -182,12 +194,16 @@ def test_eval_command_full_flow(tmp_path):
             "---\n\n## Hello\nPrint hello world in Go.\n"
         )
 
+        Path("src").mkdir()
+        Path("src/main.py").write_text("def hello(): pass")
+
         with (
             patch("specdiff.eval.run_swarm", return_value=mock_swarm),
             patch("specdiff.eval.get_gemini_client", return_value=mock_client),
             patch("specdiff.eval.check_compiles", return_value=True),
+            patch("specdiff.eval.check_tests", return_value=(None, 0, 0)),
         ):
-            result = runner.invoke(cli, ["eval", "--task", "Port to Go"])
+            result = runner.invoke(cli, ["eval", "--task", "Port to Go", "--source", "src"])
 
     assert result.exit_code == 0
     assert "With Specs" in result.output

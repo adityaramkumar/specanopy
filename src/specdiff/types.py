@@ -89,6 +89,10 @@ class RunMetrics:
     output_tokens: int = 0
     wall_clock_seconds: float = 0.0
     compiles: bool | None = None
+    tests_pass: bool | None = None
+    tests_total: int = 0
+    tests_passed: int = 0
+    files_generated: int = 0
 
 
 @dataclass

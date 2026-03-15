@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -10,15 +12,15 @@ from specdiff.graph import build_graph
 from specdiff.llm import extract_json, get_gemini_client
 from specdiff.types import EvalResult, RunMetrics, SpecdiffConfig, SpecNode
 
-BASELINE_PROMPT = """You are a code generation agent. Given the following spec content,
+BASELINE_PROMPT = """You are a code generation agent. Given the following source code,
 generate the complete source code files as a JSON object where keys are file paths
 and values are file contents.
 
 Task: {task}
 
---- SPEC CONTENT ---
-{spec_content}
---- END SPEC ---
+--- SOURCE CODE ---
+{source_code}
+--- END SOURCE ---
 
 Return ONLY a JSON object mapping file paths to file contents. No explanation."""
 
@@ -27,12 +29,12 @@ AGENTS_PER_NODE = 4  # architect, implementation, testing, review
 
 def run_baseline(
     task: str,
-    spec_content: str,
+    source_code: str,
     model: str,
 ) -> tuple[RunMetrics, dict[str, str]]:
-    """Run a single Gemini call with all spec content as one prompt."""
+    """Run a single Gemini call with raw source code as one prompt."""
     client = get_gemini_client()
-    prompt = BASELINE_PROMPT.format(task=task, spec_content=spec_content)
+    prompt = BASELINE_PROMPT.format(task=task, source_code=source_code)
 
     start = time.monotonic()
     response = client.models.generate_content(model=model, contents=prompt)
@@ -89,22 +91,24 @@ def run_specdiff_eval(
     return metrics, all_files
 
 
+def _write_files_to_dir(files: dict[str, str], target: Path, language: str) -> None:
+    """Write generated files to a directory, adding go.mod if needed."""
+    if language == "go" and not any(f.endswith("go.mod") for f in files):
+        (target / "go.mod").write_text("module eval_output\n\ngo 1.21\n")
+
+    for rel_path, content in files.items():
+        full = target / rel_path
+        full.parent.mkdir(parents=True, exist_ok=True)
+        full.write_text(content)
+
+
 def check_compiles(files: dict[str, str], language: str) -> bool:
     """Write files to a temp dir and try to compile."""
     if language != "go":
         return True  # Only Go for now
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-
-        if not any(f.endswith("go.mod") for f in files):
-            (tmp / "go.mod").write_text("module eval_output\n\ngo 1.21\n")
-
-        for rel_path, content in files.items():
-            full = tmp / rel_path
-            full.parent.mkdir(parents=True, exist_ok=True)
-            full.write_text(content)
-
+        _write_files_to_dir(files, Path(tmpdir), language)
         result = subprocess.run(
             ["go", "build", "./..."],
             cwd=tmpdir,
@@ -112,6 +116,73 @@ def check_compiles(files: dict[str, str], language: str) -> bool:
             text=True,
         )
         return result.returncode == 0
+
+
+def check_tests(files: dict[str, str], language: str) -> tuple[bool | None, int, int]:
+    """Run tests on generated files. Returns (passed, total, num_passed)."""
+    has_tests = any(_is_test_file(f, language) for f in files)
+    if not has_tests:
+        return None, 0, 0
+
+    if language != "go":
+        return None, 0, 0  # Only Go for now
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _write_files_to_dir(files, Path(tmpdir), language)
+
+        # First make sure it compiles
+        build = subprocess.run(
+            ["go", "build", "./..."],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+        )
+        if build.returncode != 0:
+            return False, 0, 0
+
+        result = subprocess.run(
+            ["go", "test", "-v", "./..."],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        output = result.stdout + result.stderr
+
+        passed = len(re.findall(r"--- PASS:", output))
+        failed = len(re.findall(r"--- FAIL:", output))
+        total = passed + failed
+
+        return result.returncode == 0, total, passed
+
+
+def _is_test_file(path: str, language: str) -> bool:
+    """Check if a file path looks like a test file."""
+    if language == "go":
+        return path.endswith("_test.go")
+    if language in ("typescript", "javascript"):
+        return any(path.endswith(ext) for ext in (".test.ts", ".spec.ts", ".test.js", ".spec.js"))
+    if language == "python":
+        return path.startswith("test_") or path.endswith("_test.py") or "/test_" in path
+    return False
+
+
+def write_eval_output(
+    output_dir: Path,
+    specdiff_files: dict[str, str],
+    baseline_files: dict[str, str],
+) -> None:
+    """Write both runs' generated files to disk for inspection. Clears previous output first."""
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+
+    for label, files in [("specdiff", specdiff_files), ("baseline", baseline_files)]:
+        target = output_dir / label
+        target.mkdir(parents=True, exist_ok=True)
+        for rel_path, content in files.items():
+            full = target / rel_path
+            full.parent.mkdir(parents=True, exist_ok=True)
+            full.write_text(content, "utf-8")
 
 
 def format_comparison(result: EvalResult) -> str:
@@ -125,7 +196,14 @@ def format_comparison(result: EvalResult) -> str:
     def _fmt(n: int) -> str:
         return f"{n:,}"
 
+    def _test_str(m: RunMetrics) -> str:
+        if m.tests_pass is None:
+            return "No tests"
+        label = "PASS" if m.tests_pass else "FAIL"
+        return f"{label} ({m.tests_passed}/{m.tests_total})"
+
     rows = [
+        ("Files", str(result.specdiff.files_generated), str(result.baseline.files_generated)),
         ("LLM Calls", str(result.specdiff.llm_calls), str(result.baseline.llm_calls)),
         ("Tokens (in)", _fmt(result.specdiff.input_tokens), _fmt(result.baseline.input_tokens)),
         ("Tokens (out)", _fmt(result.specdiff.output_tokens), _fmt(result.baseline.output_tokens)),
@@ -139,6 +217,7 @@ def format_comparison(result: EvalResult) -> str:
             _compile_str(result.specdiff.compiles),
             _compile_str(result.baseline.compiles),
         ),
+        ("Tests?", _test_str(result.specdiff), _test_str(result.baseline)),
     ]
 
     col1_w = max(len(r[0]) for r in rows) + 2
