@@ -120,6 +120,8 @@ def execute_swarm_cascade(
     map: HashMap,
     graph: SpecGraph,
     specs_dir: Path,
+    *,
+    skip_review: bool = False,
 ) -> bool:
     """Build nodes using the multi-agent swarm pipeline."""
     has_existing_files = any(entry.generated_files for entry in map.nodes.values())
@@ -167,10 +169,16 @@ def execute_swarm_cascade(
             return False
 
         if not result.review_passed:
-            click.echo(f"  [{node.id}] review failed: {result.review_feedback}", err=True)
-            all_restore = [f for files in all_written.values() for f in files]
-            restore(all_restore + all_prev_files, specs_dir)
-            return False
+            if skip_review:
+                click.echo(
+                    f"  [{node.id}] review failed (--no-review, continuing): "
+                    f"{result.review_feedback}",
+                )
+            else:
+                click.echo(f"  [{node.id}] review failed: {result.review_feedback}", err=True)
+                all_restore = [f for files in all_written.values() for f in files]
+                restore(all_restore + all_prev_files, specs_dir)
+                return False
 
         written = _write_swarm_files(
             result.generated_files, config.output_dir, node, "implementation-agent"

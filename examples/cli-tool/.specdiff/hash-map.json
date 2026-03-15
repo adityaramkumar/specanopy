@@ -1,1 +1,47 @@
-{}
+{
+  "contracts/formats/csv": {
+    "spec_hash": "edb57b7d78a4502607e88d8c38e89699af9eb47e08d69b23dc093375f008231c",
+    "generated_files": [
+      "src/csv_validator.py",
+      "src/test_csv_validator.py",
+      "src/test_csv_validator.py"
+    ],
+    "generated_at": "2026-03-15T02:28:23.042715+00:00"
+  },
+  "contracts/formats/json": {
+    "spec_hash": "8f053498a5673becd45aa5ef6eba1727bdeb891c42ec72c0e8ba055b6b13b7b2",
+    "generated_files": [
+      "src/json_converter.py",
+      "src/type_detector.py",
+      "src/output_formatter.py",
+      "src/test_json_converter.py",
+      "src/test_type_detector.py",
+      "src/test_output_formatter.py",
+      "src/test_type_detector.py",
+      "src/test_output_formatter.py",
+      "src/test_json_converter.py"
+    ],
+    "generated_at": "2026-03-15T02:28:23.042760+00:00"
+  },
+  "behaviors/validate": {
+    "spec_hash": "4b630e11f5156a31257969fa4f6b1943f1222426bf4a0aa5b4e943258389f73b",
+    "generated_files": [
+      "src/validate.py",
+      "src/checks.py",
+      "src/validate_test.py",
+      "src/checks_test.py",
+      "src/validate_test.py",
+      "src/checks_test.py"
+    ],
+    "generated_at": "2026-03-15T02:28:23.042774+00:00"
+  },
+  "behaviors/convert": {
+    "spec_hash": "a619723338ad563e8faf40a9ccc9b099a7b8e3b14de16347730c5dcc1c2736c3",
+    "generated_files": [
+      "src/convert.py",
+      "src/test_convert.py",
+      "src/test_convert.py"
+    ],
+    "generated_at": "2026-03-15T02:28:23.042777+00:00"
+  }
+}

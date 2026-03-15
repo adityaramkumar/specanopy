@@ -1,1 +1,68 @@
-{}
+{
+  "contracts/api/todos": {
+    "spec_hash": "2a5aff06c2636cc04fdde042e0308a97a8b89ba1a132aeae55374bcd169960f8",
+    "generated_files": [
+      "src/todo.ts",
+      "src/todos-router.ts",
+      "src/todos-router.test.ts",
+      "src/todos-service.ts",
+      "src/todos-service.test.ts",
+      "src/todo.test.ts",
+      "src/todos-service.test.ts"
+    ],
+    "generated_at": "2026-03-15T02:28:39.182773+00:00"
+  },
+  "behaviors/backend/crud": {
+    "spec_hash": "3bc5a2b2d95a1b99ae840d8085c5ad9eb0e9da675c885ce816b5d22fbee68c88",
+    "generated_files": [
+      "src/domain/Todo.ts",
+      "src/domain/TodoService.ts",
+      "src/domain/TodoStore.ts",
+      "src/adapters/UuidAdapter.ts",
+      "src/adapters/DateAdapter.ts",
+      "src/adapters/RouterAdapter.ts",
+      "src/domain/TodoService.test.ts",
+      "src/domain/TodoStore.test.ts",
+      "src/adapters/RouterAdapter.test.ts",
+      "src/domain/TodoService.test.ts",
+      "src/domain/TodoStore.test.ts"
+    ],
+    "generated_at": "2026-03-15T02:28:39.182804+00:00"
+  },
+  "contracts/ui/components": {
+    "spec_hash": "bc79e30afe2aa54205d718240aef2c47fd0990937de675688ac674d7bdae57c0",
+    "generated_files": [
+      "src/types/Todo.ts",
+      "src/utils/validateTodoTitle.ts",
+      "src/components/TodoItem.tsx",
+      "src/components/TodoItem.test.tsx",
+      "src/components/TodoList.tsx",
+      "src/components/TodoList.test.tsx",
+      "src/components/AddTodoForm.tsx",
+      "src/components/AddTodoForm.test.tsx",
+      "src/components/TodoFilter.tsx",
+      "src/components/TodoFilter.test.tsx",
+      "src/components/TodoItem.test.tsx",
+      "src/components/TodoList.test.tsx",
+      "src/components/AddTodoForm.test.tsx",
+      "src/components/TodoFilter.test.tsx"
+    ],
+    "generated_at": "2026-03-15T02:28:39.182807+00:00"
+  },
+  "behaviors/frontend/todo-list": {
+    "spec_hash": "8fefe85bf4a95c7a13aaf8dfd2ea65a14a2294e1e908e4282124800ad72d2b5b",
+    "generated_files": [
+      "src/types.ts",
+      "src/api-client.ts",
+      "src/useTodos.ts",
+      "src/TodoListPage.tsx",
+      "src/TodoListPage.test.tsx",
+      "src/useTodos.test.ts",
+      "src/api-client.test.ts",
+      "src/tests/useTodos.test.ts",
+      "src/tests/TodoListPage.test.tsx",
+      "src/tests/api-client.test.ts"
+    ],
+    "generated_at": "2026-03-15T02:28:39.182810+00:00"
+  }
+}

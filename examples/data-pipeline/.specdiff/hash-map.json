@@ -1,1 +1,62 @@
-{}
+{
+  "contracts/schemas/processed": {
+    "spec_hash": "aa16370c504b0bb024d13816449c4fa02a1383a6f8b296b1bb744bc743ac33db",
+    "generated_files": [
+      "src/processed_event.py",
+      "src/test_processed_event.py",
+      "src/partition_writer.py",
+      "src/test_partition_writer.py",
+      "src/tests/processed_event/test_processed_event.py",
+      "src/tests/partition_writer/test_partition_writer.py"
+    ],
+    "generated_at": "2026-03-15T02:32:31.343457+00:00"
+  },
+  "contracts/schemas/raw-events": {
+    "spec_hash": "85ff15643dade015b7da1836a539898f4bf3ba1c18eca0ca704255f3b1f21ad3",
+    "generated_files": [
+      "src/schemas.py",
+      "src/test_schemas.py",
+      "src/test_schemas.py"
+    ],
+    "generated_at": "2026-03-15T02:32:31.343503+00:00"
+  },
+  "behaviors/load": {
+    "spec_hash": "0b934202a49f4432570d0cc3738b0361a1088861a4ceeb405e5962435271ca4f",
+    "generated_files": [
+      "src/behaviors/load.py",
+      "src/behaviors/partitioner.py",
+      "src/behaviors/sorter.py",
+      "src/behaviors/load_test.py",
+      "src/behaviors/partitioner_test.py",
+      "src/behaviors/sorter_test.py",
+      "src/tests/behaviors/load_test.py"
+    ],
+    "generated_at": "2026-03-15T02:32:31.343510+00:00"
+  },
+  "behaviors/ingest": {
+    "spec_hash": "a46bf4c24197a3b855328de74eab6c7676c144c326dc88fd066bc5484a1f8221",
+    "generated_files": [
+      "src/schemas/raw_events.py",
+      "src/file_utils.py",
+      "src/event_processor.py",
+      "src/ingest.py",
+      "src/test_schemas_raw_events.py",
+      "src/test_file_utils.py",
+      "src/test_event_processor.py",
+      "src/test_ingest.py",
+      "src/test_ingest.py"
+    ],
+    "generated_at": "2026-03-15T02:32:31.343513+00:00"
+  },
+  "behaviors/transform": {
+    "spec_hash": "b23f1b9a2a7857231ad8294350b7954c38e2dfeb90460a03b6e6ac8603bea4ac",
+    "generated_files": [
+      "src/transform.py",
+      "src/events.py",
+      "src/processing.py",
+      "src/io.py",
+      "src/test_transform.py"
+    ],
+    "generated_at": "2026-03-15T02:32:31.343515+00:00"
+  }
+}

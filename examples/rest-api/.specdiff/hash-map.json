@@ -2,57 +2,64 @@
   "contracts/api/users": {
     "spec_hash": "f40252d816057e05a68d187a6823e059435ed25eb34fc5abde3ceba2491cd49a",
     "generated_files": [
-      "src/types/user.ts",
-      "src/auth/password.utils.ts",
-      "src/auth/auth.service.ts",
-      "src/api/auth.controller.ts",
-      "src/tests/auth/auth.service.test.ts",
-      "src/tests/auth/password.utils.test.ts"
+      "src/types/User.ts",
+      "src/types/LoginRequest.ts",
+      "src/types/LoginResponse.ts",
+      "src/types/SignupRequest.ts",
+      "src/types/SignupResponse.ts",
+      "src/auth/loginHandler.ts",
+      "src/auth/loginHandler.test.ts",
+      "src/auth/signupHandler.ts",
+      "src/auth/signupHandler.test.ts",
+      "src/auth/loginHandler.test.ts",
+      "src/auth/signupHandler.test.ts"
     ],
-    "generated_at": "2026-03-14T21:59:27.234855+00:00"
+    "generated_at": "2026-03-15T02:28:19.520897+00:00"
   },
   "behaviors/auth/login": {
     "spec_hash": "3e8460ea156b262964d71466b05a1aee93705931a00932181862872401776894",
     "generated_files": [
-      "src/domain/auth/user.store.ts",
-      "src/infrastructure/validation/email.validator.ts",
-      "src/infrastructure/security/jwt.provider.ts",
-      "src/domain/auth/login.service.ts",
-      "src/infrastructure/api/auth.controller.ts",
-      "src/tests/domain/auth/login.service.test.ts",
-      "src/tests/infrastructure/api/auth.controller.test.ts"
+      "src/login-handler.ts",
+      "src/login-handler.test.ts",
+      "src/validate-email.ts",
+      "src/validate-email.test.ts",
+      "src/user-store.ts",
+      "src/user-store.test.ts",
+      "src/create-jwt.ts",
+      "src/create-jwt.test.ts",
+      "src/password-utils.ts",
+      "src/password-utils.test.ts",
+      "src/login-handler.test.ts"
     ],
-    "generated_at": "2026-03-14T21:59:27.234888+00:00"
+    "generated_at": "2026-03-15T02:28:19.520930+00:00"
   },
   "behaviors/auth/signup": {
     "spec_hash": "f186382487e04177e71760b73b531d3b0bea1d2d470e71368e2f698403097c3a",
     "generated_files": [
-      "src/domain/signup/signup.types.ts",
-      "src/domain/signup/password.validator.ts",
-      "src/domain/signup/password.validator.test.ts",
-      "src/domain/signup/signup.service.ts",
-      "src/domain/signup/signup.service.test.ts",
-      "src/infrastructure/persistence/user.repository.ts",
-      "src/infrastructure/web/signup.controller.ts",
-      "src/infrastructure/web/signup.controller.test.ts",
-      "src/tests/domain/signup/password.validator.test.ts",
-      "src/tests/domain/signup/signup.service.test.ts",
-      "src/tests/infrastructure/web/signup.controller.test.ts"
+      "src/validate-email.ts",
+      "src/validate-password.ts",
+      "src/user-response.ts",
+      "src/signup-service.ts",
+      "src/signup-handler.ts",
+      "src/signup.test.ts",
+      "src/tests/validate-email.test.ts",
+      "src/tests/validate-password.test.ts",
+      "src/tests/signup-service.test.ts",
+      "src/tests/signup-handler.test.ts"
     ],
-    "generated_at": "2026-03-14T21:59:27.234892+00:00"
+    "generated_at": "2026-03-15T02:28:19.520940+00:00"
   },
   "behaviors/users/profile": {
     "spec_hash": "0b617acb52c2f132b799bc16470845b2594558e0726d102a13875aa879178b29",
     "generated_files": [
-      "src/domain/user.ts",
-      "src/domain/user.repository.ts",
-      "src/infrastructure/in-memory-user.repository.ts",
-      "src/application/get-user.service.ts",
-      "src/application/update-user.service.ts",
-      "src/infrastructure/api/users.controller.ts",
-      "src/tests/application/get-user.service.test.ts",
-      "src/tests/application/update-user.service.test.ts"
+      "src/types.ts",
+      "src/inMemoryUsers.ts",
+      "src/userService.ts",
+      "src/userService.test.ts",
+      "src/userProfileHandler.ts",
+      "src/userProfileHandler.test.ts",
+      "src/tests/userService.test.ts"
     ],
-    "generated_at": "2026-03-14T21:59:27.234893+00:00"
+    "generated_at": "2026-03-15T02:28:19.520941+00:00"
   }
 }

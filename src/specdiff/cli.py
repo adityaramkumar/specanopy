@@ -64,7 +64,8 @@ def cli() -> None:
 
 @cli.command()
 @click.argument("node_id", required=False)
-def build(node_id: str | None) -> None:
+@click.option("--no-review", is_flag=True, help="Skip the review gate")
+def build(node_id: str | None, no_review: bool) -> None:
     """Generate code from specs. Optionally target a single NODE_ID."""
     config = _load_config(Path(".specdiff"))
     specs_dir = Path(config.specs_dir)
@@ -111,7 +112,7 @@ def build(node_id: str | None) -> None:
 
     click.echo(f"Building {len(ordered_nodes)} node(s)...\n")
 
-    ok = execute_swarm_cascade(ordered_nodes, config, map, graph, specs_dir)
+    ok = execute_swarm_cascade(ordered_nodes, config, map, graph, specs_dir, skip_review=no_review)
     hashmap.save(specs_dir, map)
 
     if not ok:
