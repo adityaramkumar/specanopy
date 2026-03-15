@@ -24,6 +24,7 @@ dependencies = [
     "python-frontmatter",
     "google-genai",
     "google-adk",
+    "openai",
     "python-dotenv",
     "pyyaml",
 ]

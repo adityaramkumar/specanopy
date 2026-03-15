@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
+from dataclasses import dataclass
 from pathlib import Path
 
 from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types as genai_types
 
-from specdiff.llm import extract_json
+from specdiff.llm import detect_provider, extract_json, generate_content
 from specdiff.skills import discover_skills
 from specdiff.types import FilePlan, SpecdiffConfig, SpecNode, SwarmResult
 
 REQUIRED_SKILLS = ("architect", "interface", "implementation", "testing", "review")
 
 
+# ---------------------------------------------------------------------------
+# ADK pipeline (used for Gemini models)
+# ---------------------------------------------------------------------------
+
+
 def build_swarm(config: SpecdiffConfig, skill_content: dict[str, str]) -> SequentialAgent:
-    """Build the multi-agent pipeline from skill files."""
+    """Build the multi-agent pipeline from skill files (ADK path)."""
     architect = LlmAgent(
         name="architect",
         model=config.model,
@@ -56,6 +63,119 @@ def build_swarm(config: SpecdiffConfig, skill_content: dict[str, str]) -> Sequen
         name="build_pipeline",
         sub_agents=[architect, interface_planner, parallel, review],
     )
+
+
+async def _run_pipeline_adk(pipeline: SequentialAgent, prompt: str) -> dict[str, str]:
+    """Run the ADK pipeline and collect output_key values from session state."""
+    runner = InMemoryRunner(agent=pipeline, app_name="specdiff")
+    session = await runner.session_service.create_session(app_name="specdiff", user_id="specdiff")
+
+    content = genai_types.Content(role="user", parts=[genai_types.Part(text=prompt)])
+
+    outputs: dict[str, str] = {}
+    async for event in runner.run_async(
+        new_message=content,
+        user_id="specdiff",
+        session_id=session.id,
+    ):
+        if event.is_final_response() and event.content and event.content.parts:
+            text = "".join(p.text for p in event.content.parts if getattr(p, "text", None))
+            if text:
+                outputs["final"] = text
+
+    updated_session = await runner.session_service.get_session(
+        app_name="specdiff",
+        user_id="specdiff",
+        session_id=session.id,
+    )
+    if updated_session and updated_session.state:
+        outputs.update(updated_session.state)
+
+    return outputs
+
+
+# ---------------------------------------------------------------------------
+# Custom pipeline (used for non-Gemini models: xAI, OpenAI, etc.)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class PipelineAgent:
+    name: str
+    instruction: str
+    output_key: str
+
+
+@dataclass
+class PipelineStep:
+    agents: list[PipelineAgent]
+
+
+def build_pipeline(skill_content: dict[str, str]) -> list[PipelineStep]:
+    """Build the multi-agent pipeline from skill files (custom path)."""
+    return [
+        PipelineStep(
+            agents=[
+                PipelineAgent("architect", skill_content["architect"], "file_plan"),
+            ]
+        ),
+        PipelineStep(
+            agents=[
+                PipelineAgent("interface_planner", skill_content["interface"], "interface_spec"),
+            ]
+        ),
+        PipelineStep(
+            agents=[
+                PipelineAgent("implementation", skill_content["implementation"], "generated_code"),
+                PipelineAgent("testing", skill_content["testing"], "generated_tests"),
+            ]
+        ),
+        PipelineStep(
+            agents=[
+                PipelineAgent("review", skill_content["review"], "review_result"),
+            ]
+        ),
+    ]
+
+
+def _run_pipeline_custom(steps: list[PipelineStep], model: str, prompt: str) -> dict[str, str]:
+    """Run the custom pipeline using generate_content() for each agent."""
+    outputs: dict[str, str] = {}
+    context = prompt
+
+    for step in steps:
+        if len(step.agents) == 1:
+            agent = step.agents[0]
+            resp = generate_content(
+                model=model,
+                contents=context,
+                system_instruction=agent.instruction,
+            )
+            outputs[agent.output_key] = resp.text
+            context += f"\n\n--- {agent.output_key} ---\n{resp.text}"
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future_map = {
+                    pool.submit(
+                        generate_content,
+                        model=model,
+                        contents=context,
+                        system_instruction=a.instruction,
+                    ): a
+                    for a in step.agents
+                }
+                for future in concurrent.futures.as_completed(future_map):
+                    agent = future_map[future]
+                    text = future.result().text
+                    outputs[agent.output_key] = text
+                    context += f"\n\n--- {agent.output_key} ---\n{text}"
+
+    return outputs
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers and orchestration
+# ---------------------------------------------------------------------------
 
 
 def _build_prompt(
@@ -106,35 +226,6 @@ def _normalize_review_feedback(feedback: object) -> str:
     raise ValueError("Review agent must return a string 'feedback' field.")
 
 
-async def _run_pipeline(pipeline: SequentialAgent, prompt: str) -> dict[str, str]:
-    """Run the ADK pipeline and collect output_key values from session state."""
-    runner = InMemoryRunner(agent=pipeline, app_name="specdiff")
-    session = await runner.session_service.create_session(app_name="specdiff", user_id="specdiff")
-
-    content = genai_types.Content(role="user", parts=[genai_types.Part(text=prompt)])
-
-    outputs: dict[str, str] = {}
-    async for event in runner.run_async(
-        new_message=content,
-        user_id="specdiff",
-        session_id=session.id,
-    ):
-        if event.is_final_response() and event.content and event.content.parts:
-            text = "".join(p.text for p in event.content.parts if getattr(p, "text", None))
-            if text:
-                outputs["final"] = text
-
-    updated_session = await runner.session_service.get_session(
-        app_name="specdiff",
-        user_id="specdiff",
-        session_id=session.id,
-    )
-    if updated_session and updated_session.state:
-        outputs.update(updated_session.state)
-
-    return outputs
-
-
 def run_swarm(
     node: SpecNode,
     config: SpecdiffConfig,
@@ -150,10 +241,16 @@ def run_swarm(
             f"Create them in {specs_dir / 'skills'}/"
         )
 
-    pipeline = build_swarm(config, skills)
     language = node.language or config.language
     prompt = _build_prompt(node, dep_specs, language=language, test_framework=config.test_framework)
-    outputs = asyncio.run(_run_pipeline(pipeline, prompt))
+
+    provider_name, _ = detect_provider(config.model)
+    if provider_name == "gemini":
+        pipeline = build_swarm(config, skills)
+        outputs = asyncio.run(_run_pipeline_adk(pipeline, prompt))
+    else:
+        steps = build_pipeline(skills)
+        outputs = _run_pipeline_custom(steps, config.model, prompt)
 
     required_outputs = {
         "file_plan": "architect",

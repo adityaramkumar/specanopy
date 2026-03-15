@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from specdiff.llm import extract_json, get_gemini_client
+from specdiff.llm import extract_json, generate_content
 from specdiff.types import SpecdiffConfig
 
 _EXTENSIONS = (".py", ".js", ".ts", ".go", ".java", ".json", ".yaml", ".md")
@@ -31,7 +31,6 @@ def generate_specs_from_code(
 ) -> None:
     """Read a codebase and use the LLM to write spec files."""
     click.echo(f"Analyzing codebase in {src_dir}...")
-    client = get_gemini_client()
 
     code_files = _collect_source_files(src_dir)
     if not code_files:
@@ -42,12 +41,12 @@ def generate_specs_from_code(
     for cf in code_files:
         code_text += f"\n--- FILE: {cf['path']} ---\n{cf['content']}\n"
 
-    _generate_migration_skill(client, code_text, specs_dir, config)
+    _generate_migration_skill(config.model, code_text, specs_dir)
 
     if granularity == "file":
-        _extract_file_by_file(client, code_files, specs_dir, config)
+        _extract_file_by_file(config.model, code_files, specs_dir)
     else:
-        _extract_auto(client, code_text, specs_dir, config)
+        _extract_auto(config.model, code_text, specs_dir)
 
 
 def _collect_source_files(src_dir: Path) -> list[dict[str, str]]:
@@ -70,9 +69,7 @@ def _collect_source_files(src_dir: Path) -> list[dict[str, str]]:
     return code_files
 
 
-def _generate_migration_skill(
-    client, code_text: str, specs_dir: Path, config: SpecdiffConfig
-) -> None:
+def _generate_migration_skill(model: str, code_text: str, specs_dir: Path) -> None:
     click.echo("Generating migration.skill.md (Architectural context)...")
     skill_prompt = (
         "You are an expert software architect. Analyze the following codebase "
@@ -86,10 +83,7 @@ def _generate_migration_skill(
         f"Codebase:\n{code_text}"
     )
     try:
-        skill_resp = client.models.generate_content(
-            model=config.model,
-            contents=skill_prompt,
-        )
+        skill_resp = generate_content(model=model, contents=skill_prompt)
         content = skill_resp.text
         if content.startswith("```markdown") or content.startswith("```"):
             content = content.split("\n", 1)[1].rsplit("\n", 1)[0]
@@ -102,7 +96,7 @@ def _generate_migration_skill(
         click.echo(f"Warning: Failed to generate migration.skill.md: {e}")
 
 
-def _extract_auto(client, code_text: str, specs_dir: Path, config: SpecdiffConfig) -> None:
+def _extract_auto(model: str, code_text: str, specs_dir: Path) -> None:
     click.echo("Sending payload to LLM to extract contracts...")
 
     contract_prompt = f"""
@@ -125,10 +119,7 @@ Codebase:
 Output ONLY valid JSON containing the array of spec objects.
 """
 
-    response = client.models.generate_content(
-        model=config.model,
-        contents=contract_prompt,
-    )
+    response = generate_content(model=model, contents=contract_prompt)
 
     try:
         contracts = extract_json(response.text)
@@ -176,10 +167,7 @@ Output ONLY valid JSON containing the array of spec objects
 (path under 'behaviors/', and content).
 """
 
-    response2 = client.models.generate_content(
-        model=config.model,
-        contents=behavior_prompt,
-    )
+    response2 = generate_content(model=model, contents=behavior_prompt)
 
     try:
         behaviors = extract_json(response2.text)
@@ -201,10 +189,9 @@ Output ONLY valid JSON containing the array of spec objects
 
 
 def _extract_file_by_file(
-    client,
+    model: str,
     code_files: list[dict[str, str]],
     specs_dir: Path,
-    config: SpecdiffConfig,
 ) -> None:
     click.echo(f"Extracting 1:1 specs for {len(code_files)} files...")
     all_paths = [cf["path"] for cf in code_files]
@@ -228,10 +215,7 @@ def _extract_file_by_file(
         )
         resp = None
         try:
-            resp = client.models.generate_content(
-                model=config.model,
-                contents=prompt,
-            )
+            resp = generate_content(model=model, contents=prompt)
             data = extract_json(resp.text)
 
             if isinstance(data, list) and len(data) > 0:

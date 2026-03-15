@@ -1,4 +1,4 @@
-model: gemini-3.1-flash-lite-preview
+model: grok-4-1-fast-non-reasoning
 output_dir: src
 specs_dir: .specdiff
 language: python

@@ -6,7 +6,17 @@ from unittest.mock import patch
 
 import pytest
 
-from specdiff.agents.swarm import REQUIRED_SKILLS, _build_prompt, build_swarm, run_swarm
+from specdiff.agents.swarm import (
+    REQUIRED_SKILLS,
+    PipelineAgent,
+    PipelineStep,
+    _build_prompt,
+    _run_pipeline_custom,
+    build_pipeline,
+    build_swarm,
+    run_swarm,
+)
+from specdiff.llm import LLMResponse
 from specdiff.types import SpecdiffConfig, SpecNode
 
 
@@ -34,6 +44,11 @@ def _setup_skills_dir(tmp_path: Path) -> Path:
     return specs_dir
 
 
+# ---------------------------------------------------------------------------
+# ADK pipeline structure tests
+# ---------------------------------------------------------------------------
+
+
 class TestBuildSwarm:
     def test_structure(self):
         config = SpecdiffConfig()
@@ -50,6 +65,60 @@ class TestBuildSwarm:
         assert len(parallel.sub_agents) == 2
         sub_names = {a.name for a in parallel.sub_agents}
         assert sub_names == {"implementation", "testing"}
+
+
+# ---------------------------------------------------------------------------
+# Custom pipeline structure tests
+# ---------------------------------------------------------------------------
+
+
+class TestBuildPipeline:
+    def test_structure(self):
+        steps = build_pipeline(_make_skills())
+
+        assert len(steps) == 4
+
+        assert len(steps[0].agents) == 1
+        assert steps[0].agents[0].name == "architect"
+        assert steps[0].agents[0].output_key == "file_plan"
+
+        assert len(steps[1].agents) == 1
+        assert steps[1].agents[0].name == "interface_planner"
+        assert steps[1].agents[0].output_key == "interface_spec"
+
+        assert len(steps[2].agents) == 2
+        parallel_names = {a.name for a in steps[2].agents}
+        assert parallel_names == {"implementation", "testing"}
+
+        assert len(steps[3].agents) == 1
+        assert steps[3].agents[0].name == "review"
+        assert steps[3].agents[0].output_key == "review_result"
+
+
+class TestRunPipelineCustom:
+    @patch("specdiff.agents.swarm.generate_content")
+    def test_sequential_and_parallel(self, mock_gen):
+        mock_gen.return_value = LLMResponse(text="agent output")
+        steps = [
+            PipelineStep(agents=[PipelineAgent("a1", "inst1", "out1")]),
+            PipelineStep(
+                agents=[
+                    PipelineAgent("a2", "inst2", "out2"),
+                    PipelineAgent("a3", "inst3", "out3"),
+                ]
+            ),
+        ]
+        outputs = _run_pipeline_custom(steps, "grok-4-1-fast-non-reasoning", "prompt")
+
+        assert "out1" in outputs
+        assert "out2" in outputs
+        assert "out3" in outputs
+        assert mock_gen.call_count == 3
+
+
+# ---------------------------------------------------------------------------
+# Prompt building
+# ---------------------------------------------------------------------------
 
 
 class TestBuildPrompt:
@@ -84,8 +153,13 @@ class TestBuildPrompt:
         assert "API Contract" in prompt
 
 
+# ---------------------------------------------------------------------------
+# Language resolution (uses default Gemini model -> ADK path)
+# ---------------------------------------------------------------------------
+
+
 class TestLanguageResolution:
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_spec_language_overrides_config(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -111,7 +185,7 @@ class TestLanguageResolution:
         prompt = call_args[0][1]
         assert "Language: typescript" in prompt
 
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_config_language_used_when_no_spec_override(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -130,8 +204,13 @@ class TestLanguageResolution:
         assert "Test Framework: vitest" in prompt
 
 
+# ---------------------------------------------------------------------------
+# run_swarm (ADK path — default model is gemini-*)
+# ---------------------------------------------------------------------------
+
+
 class TestRunSwarm:
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_pass(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -147,7 +226,7 @@ class TestRunSwarm:
         assert "auth/login.test.ts" in result.generated_tests
         assert "auth/login.ts" in result.file_plan.files
 
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_review_fail(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -173,7 +252,7 @@ class TestRunSwarm:
         with pytest.raises(FileNotFoundError, match="Missing required skill files"):
             run_swarm(_make_node(), SpecdiffConfig(), specs_dir)
 
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_invalid_json_fails(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -186,7 +265,7 @@ class TestRunSwarm:
         with pytest.raises(ValueError, match="Architect agent returned invalid JSON"):
             run_swarm(_make_node(), SpecdiffConfig(), specs_dir)
 
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_missing_review_output_fails(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -198,7 +277,7 @@ class TestRunSwarm:
         with pytest.raises(ValueError, match="Swarm did not return outputs for: review"):
             run_swarm(_make_node(), SpecdiffConfig(), specs_dir)
 
-    @patch("specdiff.agents.swarm._run_pipeline")
+    @patch("specdiff.agents.swarm._run_pipeline_adk")
     def test_review_feedback_list_is_normalized(self, mock_pipeline, tmp_path):
         specs_dir = _setup_skills_dir(tmp_path)
         mock_pipeline.return_value = {
@@ -211,3 +290,27 @@ class TestRunSwarm:
         result = run_swarm(_make_node(), SpecdiffConfig(), specs_dir)
         assert result.review_passed is False
         assert result.review_feedback == "a\nb"
+
+
+# ---------------------------------------------------------------------------
+# run_swarm (custom path — xAI model)
+# ---------------------------------------------------------------------------
+
+
+class TestRunSwarmCustom:
+    @patch("specdiff.agents.swarm._run_pipeline_custom")
+    def test_xai_model_uses_custom_pipeline(self, mock_pipeline, tmp_path):
+        specs_dir = _setup_skills_dir(tmp_path)
+        mock_pipeline.return_value = {
+            "file_plan": json.dumps({"main.py": "entry point"}),
+            "generated_code": json.dumps({"main.py": "print('hello')"}),
+            "generated_tests": json.dumps({"test_main.py": "def test(): pass"}),
+            "review_result": json.dumps({"passed": True, "feedback": "ok"}),
+        }
+
+        config = SpecdiffConfig(model="grok-4-1-fast-non-reasoning")
+        result = run_swarm(_make_node(), config, specs_dir)
+
+        assert result.review_passed is True
+        assert "main.py" in result.generated_files
+        mock_pipeline.assert_called_once()

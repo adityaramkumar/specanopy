@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from specdiff.llm import extract_json, get_gemini_client
+from specdiff.llm import extract_json, generate_content
 from specdiff.types import ReviewResult, SpecdiffConfig, SpecNode
 
 REVIEW_PROMPT_TEMPLATE = """\
@@ -25,18 +25,16 @@ Return raw JSON only, no markdown fences.
 
 def review_spec(node: SpecNode, skill_content: str, config: SpecdiffConfig) -> ReviewResult:
     """Run the Spec Agent to evaluate a spec node against a skill's criteria."""
-    client = get_gemini_client()
-
     prompt = REVIEW_PROMPT_TEMPLATE.format(
         node_id=node.id,
         version=node.version,
         content=node.content,
     )
 
-    response = client.models.generate_content(
+    response = generate_content(
         model=config.model,
-        config={"system_instruction": skill_content},
         contents=prompt,
+        system_instruction=skill_content,
     )
 
     data = extract_json(response.text)

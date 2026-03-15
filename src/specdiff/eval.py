@@ -9,7 +9,7 @@ from pathlib import Path
 
 from specdiff.agents.swarm import run_swarm
 from specdiff.graph import build_graph
-from specdiff.llm import extract_json, get_gemini_client
+from specdiff.llm import extract_json, generate_content
 from specdiff.types import EvalResult, RunMetrics, SpecdiffConfig, SpecNode
 
 BASELINE_PROMPT = """You are a code generation agent. Given the following source code,
@@ -32,18 +32,17 @@ def run_baseline(
     source_code: str,
     model: str,
 ) -> tuple[RunMetrics, dict[str, str]]:
-    """Run a single Gemini call with raw source code as one prompt."""
-    client = get_gemini_client()
+    """Run a single LLM call with raw source code as one prompt."""
     prompt = BASELINE_PROMPT.format(task=task, source_code=source_code)
 
     start = time.monotonic()
-    response = client.models.generate_content(model=model, contents=prompt)
+    response = generate_content(model=model, contents=prompt)
     elapsed = time.monotonic() - start
 
     metrics = RunMetrics(
         llm_calls=1,
-        input_tokens=getattr(response.usage_metadata, "prompt_token_count", 0),
-        output_tokens=getattr(response.usage_metadata, "candidates_token_count", 0),
+        input_tokens=response.input_tokens,
+        output_tokens=response.output_tokens,
         wall_clock_seconds=round(elapsed, 2),
     )
 

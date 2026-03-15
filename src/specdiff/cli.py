@@ -264,6 +264,7 @@ def init() -> None:
     (specs_dir / "skills").mkdir()
 
     config_yaml = """model: gemini-2.5-flash
+# For xAI: model: grok-4-1-fast-non-reasoning
 output_dir: src
 specs_dir: .specdiff
 language: python

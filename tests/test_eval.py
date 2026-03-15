@@ -1,10 +1,11 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
 from specdiff.cli import cli
 from specdiff.eval import run_baseline, run_specdiff_eval
+from specdiff.llm import LLMResponse
 from specdiff.types import (
     EvalResult,
     FilePlan,
@@ -48,16 +49,13 @@ def test_eval_result_holds_both_runs():
 
 
 def test_run_baseline_returns_metrics():
-    mock_response = MagicMock()
-    mock_response.text = '{"main.go": "package main"}'
-    mock_response.usage_metadata = MagicMock()
-    mock_response.usage_metadata.prompt_token_count = 100
-    mock_response.usage_metadata.candidates_token_count = 50
+    mock_response = LLMResponse(
+        text='{"main.go": "package main"}',
+        input_tokens=100,
+        output_tokens=50,
+    )
 
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = mock_response
-
-    with patch("specdiff.eval.get_gemini_client", return_value=mock_client):
+    with patch("specdiff.eval.generate_content", return_value=mock_response):
         metrics, files = run_baseline(
             task="Port to Go",
             source_code="def hello():\n    print('hello')",
@@ -166,14 +164,11 @@ def test_eval_command_full_flow(tmp_path):
         review_passed=True,
     )
 
-    mock_response = MagicMock()
-    mock_response.text = '{"main.go": "package main\\n\\nfunc main() {}"}'
-    mock_response.usage_metadata = MagicMock()
-    mock_response.usage_metadata.prompt_token_count = 200
-    mock_response.usage_metadata.candidates_token_count = 100
-
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = mock_response
+    mock_llm_response = LLMResponse(
+        text='{"main.go": "package main\\n\\nfunc main() {}"}',
+        input_tokens=200,
+        output_tokens=100,
+    )
 
     runner = CliRunner()
     with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -199,7 +194,7 @@ def test_eval_command_full_flow(tmp_path):
 
         with (
             patch("specdiff.eval.run_swarm", return_value=mock_swarm),
-            patch("specdiff.eval.get_gemini_client", return_value=mock_client),
+            patch("specdiff.eval.generate_content", return_value=mock_llm_response),
             patch("specdiff.eval.check_compiles", return_value=True),
             patch("specdiff.eval.check_tests", return_value=(None, 0, 0)),
         ):
