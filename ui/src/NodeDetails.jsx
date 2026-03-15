@@ -1,5 +1,9 @@
 import { X, GitCommit, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import { motion } from 'framer-motion';
+import 'highlight.js/styles/github-dark.css';
 const statusConfig = {
   current: { color: 'text-emerald-400', icon: CheckCircle2, label: 'Current' },
   stale: { color: 'text-amber-400', icon: Clock, label: 'Stale' },
@@ -13,7 +17,13 @@ export default function NodeDetails({ data, onClose }) {
   const Icon = config.icon;
 
   return (
-    <div className="sidebar details-panel slide-in">
+    <motion.div 
+      className="sidebar details-panel"
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+    >
       <div className="panel-header">
         <div className="panel-title">
           <h2>{data.id}</h2>
@@ -47,9 +57,12 @@ export default function NodeDetails({ data, onClose }) {
         <div className="content-section">
           <h3>Markdown Source</h3>
           <div className="markdown-viewer">
-            <pre>
-              <code>{data.content}</code>
-            </pre>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeHighlight]}
+            >
+              {data.content || '*No content available*'}
+            </ReactMarkdown>
           </div>
         </div>
 
@@ -64,6 +77,6 @@ export default function NodeDetails({ data, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

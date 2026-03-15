@@ -60,6 +60,7 @@ body {
   font-weight: 600;
   background: linear-gradient(to right, #fff, #a5b4fc);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -164,6 +165,24 @@ body {
   border: 2px solid var(--bg-dark) !important;
 }
 
+.dimmed {
+  opacity: 0.25 !important;
+  filter: grayscale(80%);
+  transition: all 0.3s ease;
+}
+
+.dimmed-edge {
+  opacity: 0.1 !important;
+  transition: opacity 0.3s ease;
+}
+
+.highlighted-edge {
+  stroke: var(--accent) !important;
+  stroke-width: 3 !important;
+  opacity: 1 !important;
+  z-index: 1000;
+}
+
 /* Utility Classes for Colors */
 .text-emerald-400 { color: #34d399; }
 .border-emerald-500\/50 { border-color: rgba(16, 185, 129, 0.5); }
@@ -195,15 +214,6 @@ body {
   flex-direction: column;
   z-index: 100;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
-}
-
-.slide-in {
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
 }
 
 .panel-header {
