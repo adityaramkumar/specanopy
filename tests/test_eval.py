@@ -1,6 +1,9 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from click.testing import CliRunner
+
+from specdiff.cli import cli
 from specdiff.eval import run_baseline, run_specdiff_eval
 from specdiff.types import (
     EvalResult,
@@ -22,8 +25,20 @@ def test_run_metrics_defaults():
 
 
 def test_eval_result_holds_both_runs():
-    spec = RunMetrics(llm_calls=4, input_tokens=12000, output_tokens=8000, wall_clock_seconds=14.2, compiles=True)
-    base = RunMetrics(llm_calls=1, input_tokens=45000, output_tokens=38000, wall_clock_seconds=22.8, compiles=False)
+    spec = RunMetrics(
+        llm_calls=4,
+        input_tokens=12000,
+        output_tokens=8000,
+        wall_clock_seconds=14.2,
+        compiles=True,
+    )
+    base = RunMetrics(
+        llm_calls=1,
+        input_tokens=45000,
+        output_tokens=38000,
+        wall_clock_seconds=22.8,
+        compiles=False,
+    )
     result = EvalResult(task="Port to Go", specdiff=spec, baseline=base)
     assert result.task == "Port to Go"
     assert result.specdiff.llm_calls == 4
@@ -56,8 +71,23 @@ def test_run_baseline_returns_metrics():
 
 def test_run_specdiff_eval_returns_metrics():
     nodes = [
-        SpecNode(id="a", version="1.0", status="approved", hash="abc", content="spec a", file_path="a.spec.md"),
-        SpecNode(id="b", version="1.0", status="approved", hash="def", content="spec b", file_path="b.spec.md", depends_on=["a"]),
+        SpecNode(
+            id="a",
+            version="1.0",
+            status="approved",
+            hash="abc",
+            content="spec a",
+            file_path="a.spec.md",
+        ),
+        SpecNode(
+            id="b",
+            version="1.0",
+            status="approved",
+            hash="def",
+            content="spec b",
+            file_path="b.spec.md",
+            depends_on=["a"],
+        ),
     ]
     config = SpecdiffConfig()
     mock_result = SwarmResult(
@@ -80,8 +110,20 @@ def test_format_comparison_table():
 
     result = EvalResult(
         task="Port to Go",
-        specdiff=RunMetrics(llm_calls=4, input_tokens=12000, output_tokens=8000, wall_clock_seconds=14.2, compiles=True),
-        baseline=RunMetrics(llm_calls=1, input_tokens=45000, output_tokens=38000, wall_clock_seconds=22.8, compiles=False),
+        specdiff=RunMetrics(
+            llm_calls=4,
+            input_tokens=12000,
+            output_tokens=8000,
+            wall_clock_seconds=14.2,
+            compiles=True,
+        ),
+        baseline=RunMetrics(
+            llm_calls=1,
+            input_tokens=45000,
+            output_tokens=38000,
+            wall_clock_seconds=22.8,
+            compiles=False,
+        ),
     )
     table = format_comparison(result)
     assert "With Specs" in table
@@ -90,14 +132,12 @@ def test_format_comparison_table():
     assert "45,000" in table
 
 
-from click.testing import CliRunner
-from specdiff.cli import cli
-
-
 def test_eval_command_no_specs(tmp_path):
     config_dir = tmp_path / ".specdiff"
     config_dir.mkdir()
-    (config_dir / "config.yaml").write_text("model: gemini-2.5-flash\nspecs_dir: .specdiff\nlanguage: go\n")
+    (config_dir / "config.yaml").write_text(
+        "model: gemini-2.5-flash\nspecs_dir: .specdiff\nlanguage: go\n"
+    )
 
     runner = CliRunner()
     with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -131,21 +171,22 @@ def test_eval_command_full_flow(tmp_path):
             "model: gemini-2.5-flash\nspecs_dir: .specdiff\nlanguage: go\n"
         )
 
-        # Create skills directory with required skills
         skills_dir = config_dir / "skills"
         skills_dir.mkdir()
         for skill in ("architect", "implementation", "testing", "review"):
             (skills_dir / f"{skill}.skill.md").write_text(f"# {skill}\nDo {skill} things.")
 
-        # Create a spec file
         spec = config_dir / "hello.spec.md"
         spec.write_text(
-            "---\nid: hello\nversion: '1.0'\nstatus: approved\n---\n\n## Hello\nPrint hello world in Go.\n"
+            "---\nid: hello\nversion: '1.0'\nstatus: approved\n"
+            "---\n\n## Hello\nPrint hello world in Go.\n"
         )
 
-        with patch("specdiff.eval.run_swarm", return_value=mock_swarm), \
-             patch("specdiff.eval.get_gemini_client", return_value=mock_client), \
-             patch("specdiff.eval.check_compiles", return_value=True):
+        with (
+            patch("specdiff.eval.run_swarm", return_value=mock_swarm),
+            patch("specdiff.eval.get_gemini_client", return_value=mock_client),
+            patch("specdiff.eval.check_compiles", return_value=True),
+        ):
             result = runner.invoke(cli, ["eval", "--task", "Port to Go"])
 
     assert result.exit_code == 0

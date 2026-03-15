@@ -8,7 +8,7 @@ from pathlib import Path
 from specdiff.agents.swarm import run_swarm
 from specdiff.graph import build_graph
 from specdiff.llm import extract_json, get_gemini_client
-from specdiff.types import RunMetrics, SpecdiffConfig, SpecNode
+from specdiff.types import EvalResult, RunMetrics, SpecdiffConfig, SpecNode
 
 BASELINE_PROMPT = """You are a code generation agent. Given the following spec content,
 generate the complete source code files as a JSON object where keys are file paths
@@ -114,9 +114,8 @@ def check_compiles(files: dict[str, str], language: str) -> bool:
         return result.returncode == 0
 
 
-def format_comparison(result: "EvalResult") -> str:
+def format_comparison(result: EvalResult) -> str:
     """Format a side-by-side comparison table."""
-    from specdiff.types import EvalResult  # avoid circular at module level if needed
 
     def _compile_str(val: bool | None) -> str:
         if val is None:
@@ -130,8 +129,16 @@ def format_comparison(result: "EvalResult") -> str:
         ("LLM Calls", str(result.specdiff.llm_calls), str(result.baseline.llm_calls)),
         ("Tokens (in)", _fmt(result.specdiff.input_tokens), _fmt(result.baseline.input_tokens)),
         ("Tokens (out)", _fmt(result.specdiff.output_tokens), _fmt(result.baseline.output_tokens)),
-        ("Latency", f"{result.specdiff.wall_clock_seconds}s", f"{result.baseline.wall_clock_seconds}s"),
-        ("Compiles?", _compile_str(result.specdiff.compiles), _compile_str(result.baseline.compiles)),
+        (
+            "Latency",
+            f"{result.specdiff.wall_clock_seconds}s",
+            f"{result.baseline.wall_clock_seconds}s",
+        ),
+        (
+            "Compiles?",
+            _compile_str(result.specdiff.compiles),
+            _compile_str(result.baseline.compiles),
+        ),
     ]
 
     col1_w = max(len(r[0]) for r in rows) + 2
@@ -145,7 +152,9 @@ def format_comparison(result: "EvalResult") -> str:
 
     sep = f"+{'-' * col1_w}+{'-' * col2_w}+{'-' * col3_w}+"
     lines = [sep]
-    lines.append(f"|{header_label[0]:^{col1_w}}|{header_label[1]:^{col2_w}}|{header_label[2]:^{col3_w}}|")
+    lines.append(
+        f"|{header_label[0]:^{col1_w}}|{header_label[1]:^{col2_w}}|{header_label[2]:^{col3_w}}|"
+    )
     lines.append(sep)
     for label, v1, v2 in rows:
         lines.append(f"|{label:^{col1_w}}|{v1:^{col2_w}}|{v2:^{col3_w}}|")

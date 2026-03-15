@@ -304,7 +304,13 @@ def extract(source: str, granularity: str) -> None:
 
 
 @cli.command(name="eval")
-@click.option("--task", "-t", "task_desc", required=True, help="Task description for baseline comparison")
+@click.option(
+    "--task",
+    "-t",
+    "task_desc",
+    required=True,
+    help="Task description for baseline comparison",
+)
 def eval_cmd(task_desc: str) -> None:
     """Compare spec-driven generation vs raw baseline on the same task."""
     config = _load_config(Path(".specdiff"))
@@ -320,7 +326,12 @@ def eval_cmd(task_desc: str) -> None:
         f"## {node.id} (v{node.version})\n{node.content}" for node in nodes
     )
 
-    from specdiff.eval import run_baseline, run_specdiff_eval, check_compiles, format_comparison
+    from specdiff.eval import (
+        check_compiles,
+        format_comparison,
+        run_baseline,
+        run_specdiff_eval,
+    )
     from specdiff.types import EvalResult
 
     click.echo(f"Task: {task_desc}\n")
