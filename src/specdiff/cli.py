@@ -301,3 +301,42 @@ def extract(source: str, granularity: str) -> None:
     from specdiff.extract import generate_specs_from_code
 
     generate_specs_from_code(src_path, specs_dir, config, granularity)
+
+
+@cli.command(name="eval")
+@click.option("--task", "-t", "task_desc", required=True, help="Task description for baseline comparison")
+def eval_cmd(task_desc: str) -> None:
+    """Compare spec-driven generation vs raw baseline on the same task."""
+    config = _load_config(Path(".specdiff"))
+    specs_dir = Path(config.specs_dir)
+
+    nodes = discover_specs(specs_dir)
+    if not nodes:
+        click.echo("No spec files found.")
+        return
+
+    # Combine all spec content for the baseline prompt
+    all_spec_content = "\n\n".join(
+        f"## {node.id} (v{node.version})\n{node.content}" for node in nodes
+    )
+
+    from specdiff.eval import run_baseline, run_specdiff_eval, check_compiles, format_comparison
+    from specdiff.types import EvalResult
+
+    click.echo(f"Task: {task_desc}\n")
+
+    # Run specdiff (spec-driven)
+    click.echo("Running with specs (specdiff swarm)...")
+    spec_metrics, spec_files = run_specdiff_eval(nodes, config, specs_dir)
+    spec_metrics.compiles = check_compiles(spec_files, config.language)
+    click.echo(f"  Done. {len(spec_files)} files generated.\n")
+
+    # Run baseline (single prompt)
+    click.echo("Running without specs (single prompt)...")
+    base_metrics, base_files = run_baseline(task_desc, all_spec_content, config.model)
+    base_metrics.compiles = check_compiles(base_files, config.language)
+    click.echo(f"  Done. {len(base_files)} files generated.\n")
+
+    # Display comparison
+    result = EvalResult(task=task_desc, specdiff=spec_metrics, baseline=base_metrics)
+    click.echo(format_comparison(result))
