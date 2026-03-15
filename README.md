@@ -235,6 +235,10 @@ For the broader design vision and planned extensions beyond the current implemen
 
 ## Development
 
+### UI
+
+![Specdiff Graph UI](docs/images/ui-screenshot.jpeg)
+
 ```bash
 # Run tests
 pytest tests/ -v
