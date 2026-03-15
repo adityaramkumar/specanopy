@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -21,27 +21,29 @@ export default function App() {
   const [selectedNodeData, setSelectedNodeData] = useState(null);
   const [error, setError] = useState(null);
 
-  // Use a ref polling interval to refresh the graph data every 2 seconds
+  const BASE_POLL_MS = 5000;
+  const MAX_POLL_MS = 30000;
+  const backoffRef = useRef(BASE_POLL_MS);
+
   useEffect(() => {
     let isMounted = true;
-    
+    let timer;
+
     const fetchGraph = async () => {
       try {
         const res = await fetch('/api/graph');
         if (!res.ok) throw new Error('API Error');
         const data = await res.json();
-        
+
         if (!isMounted) return;
 
-        // Map Backend Nodes -> React Flow Nodes
         const flowNodes = data.nodes.map(n => ({
           id: n.id,
           type: 'spec',
-          position: { x: 0, y: 0 }, // computed by dagre later
+          position: { x: 0, y: 0 },
           data: { ...n },
         }));
 
-        // Map Backend Edges -> React Flow Edges
         const flowEdges = data.edges.map(e => ({
           id: `${e.source}-${e.target}`,
           source: e.source,
@@ -57,7 +59,6 @@ export default function App() {
           style: { stroke: '#4B5563', strokeWidth: 2 },
         }));
 
-        // Auto layout using Dagre
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
           flowNodes,
           flowEdges
@@ -66,17 +67,24 @@ export default function App() {
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
         setError(null);
+        backoffRef.current = BASE_POLL_MS;
       } catch (e) {
-        if (isMounted) setError(e.message);
+        if (isMounted) {
+          setError(e.message);
+          backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
+        }
+      }
+
+      if (isMounted) {
+        timer = setTimeout(fetchGraph, backoffRef.current);
       }
     };
 
     fetchGraph();
-    const interval = setInterval(fetchGraph, 2000);
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      clearTimeout(timer);
     };
   }, []);
 

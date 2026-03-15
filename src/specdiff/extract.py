@@ -212,7 +212,6 @@ def _extract_file_by_file(
 
     for cf in code_files:
         click.echo(f"  Processing {cf['path']}...")
-        base_id = Path(cf["path"]).with_suffix("").as_posix()
 
         prompt = (
             "You are an expert systems architect. Convert the following "
@@ -227,6 +226,7 @@ def _extract_file_by_file(
             "2. Use the Project File List to infer valid dependencies "
             "(prefix them with behaviors/).\n"
         )
+        resp = None
         try:
             resp = client.models.generate_content(
                 model=config.model,
@@ -241,7 +241,7 @@ def _extract_file_by_file(
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(data["content"], "utf-8")
         except Exception as e:
-            resp_text = resp.text if "resp" in locals() else ""
+            resp_text = resp.text if resp is not None else ""
             click.echo(f"    Failed to process {cf['path']}: {e}\n{resp_text}")
 
     click.echo("File-by-file extraction complete!")

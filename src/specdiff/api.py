@@ -74,19 +74,18 @@ class GraphUIHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/graph":
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            # CORS headers in case someone wants to run the frontend dev server locally against it
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-
             try:
                 data = _get_graph_data(self.specs_dir)
-                response = json.dumps(data).encode("utf-8")
-                self.wfile.write(response)
+                body = json.dumps(data).encode("utf-8")
+                self.send_response(200)
             except Exception as e:
-                error = json.dumps({"error": str(e)}).encode("utf-8")
-                self.wfile.write(error)
+                body = json.dumps({"error": str(e)}).encode("utf-8")
+                self.send_response(500)
+
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         # Fallback to serving static files (e.g. index.html) for React Router

@@ -1,4 +1,4 @@
-name: Publish Specanopy to PyPI
+name: Publish Specdiff to PyPI
 
 on:
   release:
