@@ -399,6 +399,20 @@ class TestExtractJsonObject:
         with pytest.raises(ValueError, match="invalid JSON"):
             _extract_json_object("not json", "TestAgent")
 
+    def test_invalid_json_includes_response_preview(self):
+        from specdiff.agents.swarm import _extract_json_object
+
+        with pytest.raises(ValueError, match="Response preview"):
+            _extract_json_object("Here is my response: blah blah", "TestAgent")
+
+    def test_invalid_json_truncates_long_response(self):
+        from specdiff.agents.swarm import _extract_json_object
+
+        long_response = "x" * 500
+        with pytest.raises(ValueError) as exc_info:
+            _extract_json_object(long_response, "TestAgent")
+        assert len(str(exc_info.value)) < 500
+
     def test_valid_dict_passes(self):
         from specdiff.agents.swarm import _extract_json_object
 

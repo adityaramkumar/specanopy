@@ -101,6 +101,15 @@ def build(node_id: str | None, no_review: bool) -> None:
     ordered_ids = cascade(graph, [n.id for n in stale], stale_ids=stale_ids)
     ordered_nodes = [graph.nodes[nid] for nid in ordered_ids]
 
+    for node in ordered_nodes:
+        for dep_id in node.depends_on:
+            if dep_id not in graph.nodes:
+                click.echo(
+                    f"  Warning: '{node.id}' depends on '{dep_id}' which was not found.\n"
+                    f"  Create '.specdiff/{dep_id}.spec.md' to provide dependency context.",
+                    err=True,
+                )
+
     if config.review_before_build:
         try:
             skill = load_skill(specs_dir, SPEC_EVAL_SKILL)

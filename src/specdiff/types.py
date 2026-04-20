@@ -61,6 +61,14 @@ class SpecdiffConfig:
     test_framework: str | None = None
     max_retries: int = 2
 
+    def __post_init__(self) -> None:
+        if not self.model:
+            raise ValueError("model must be a non-empty string")
+        if not self.output_dir:
+            raise ValueError("output_dir must be a non-empty string")
+        if self.max_retries < 0:
+            raise ValueError(f"max_retries must be >= 0, got {self.max_retries}")
+
 
 @dataclass
 class ReviewResult:
