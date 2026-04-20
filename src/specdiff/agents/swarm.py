@@ -223,7 +223,10 @@ def _extract_json_object(raw_output: str, label: str) -> dict:
     try:
         data = extract_json(raw_output)
     except Exception as exc:
-        raise ValueError(f"{label} agent returned invalid JSON.") from exc
+        preview = (raw_output[:300].replace("\n", " ")) if raw_output else "(empty response)"
+        raise ValueError(
+            f"{label} agent returned invalid JSON. Response preview: {preview!r}"
+        ) from exc
 
     if not isinstance(data, dict):
         raise ValueError(f"{label} agent must return a JSON object.")

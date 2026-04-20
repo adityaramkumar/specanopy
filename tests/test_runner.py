@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from specdiff.agents.swarm import REQUIRED_SKILLS
 from specdiff.graph import build_graph
 from specdiff.runner import (
@@ -162,6 +164,29 @@ class TestCleanBackups:
 # ---------------------------------------------------------------------------
 # run_tests
 # ---------------------------------------------------------------------------
+
+
+class TestSpecdiffConfigValidation:
+    def test_negative_max_retries_raises(self):
+        with pytest.raises(ValueError, match="max_retries"):
+            SpecdiffConfig(max_retries=-1)
+
+    def test_zero_max_retries_is_valid(self):
+        config = SpecdiffConfig(max_retries=0)
+        assert config.max_retries == 0
+
+    def test_empty_model_raises(self):
+        with pytest.raises(ValueError, match="model"):
+            SpecdiffConfig(model="")
+
+    def test_empty_output_dir_raises(self):
+        with pytest.raises(ValueError, match="output_dir"):
+            SpecdiffConfig(output_dir="")
+
+    def test_valid_defaults_accepted(self):
+        config = SpecdiffConfig()
+        assert config.model == "gemini-2.5-flash"
+        assert config.max_retries == 2
 
 
 class TestRunTests:
