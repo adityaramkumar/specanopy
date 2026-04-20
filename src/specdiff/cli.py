@@ -477,9 +477,7 @@ def clean(node_id: str | None, yes: bool) -> None:
         targets = dict(hm.nodes)
 
     total_files = sum(len(e.generated_files) for e in targets.values())
-    prompt = (
-        f"Remove {len(targets)} node(s) and {total_files} generated file(s) from the hash map?"
-    )
+    prompt = f"Remove {len(targets)} node(s) and {total_files} generated file(s) from the hash map?"
     if not yes and not click.confirm(prompt):
         click.echo("Aborted.")
         return
