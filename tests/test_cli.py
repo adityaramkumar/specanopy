@@ -363,12 +363,8 @@ class TestBuildDryRun:
         )
         from specdiff.parser import parse_spec_file
 
-        node = parse_spec_file(
-            proj / ".specdiff" / "behaviors" / "auth" / "login.spec.md"
-        )
-        hm_data = {
-            node.id: {"spec_hash": node.hash, "generated_files": [], "generated_at": ""}
-        }
+        node = parse_spec_file(proj / ".specdiff" / "behaviors" / "auth" / "login.spec.md")
+        hm_data = {node.id: {"spec_hash": node.hash, "generated_files": [], "generated_at": ""}}
         (proj / ".specdiff" / "hash-map.json").write_text(json.dumps(hm_data))
 
         runner = CliRunner()
@@ -405,8 +401,9 @@ class TestBuildDryRun:
             [{"path": "behaviors/auth/login.spec.md", "id": "auth/login"}],
         )
         runner = CliRunner()
-        with patch("specdiff.runner.run_swarm") as mock_swarm, runner.isolated_filesystem(
-            temp_dir=tmp_path
+        with (
+            patch("specdiff.runner.run_swarm") as mock_swarm,
+            runner.isolated_filesystem(temp_dir=tmp_path),
         ):
             os.chdir(proj)
             runner.invoke(cli, ["build", "--dry-run"], catch_exceptions=False)
