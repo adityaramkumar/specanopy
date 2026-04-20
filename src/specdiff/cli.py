@@ -184,9 +184,7 @@ def validate() -> None:
     seen_ids: dict[str, str] = {}
     for node in nodes:
         if node.id in seen_ids:
-            errors.append(
-                f"  Duplicate ID '{node.id}': {node.file_path} and {seen_ids[node.id]}"
-            )
+            errors.append(f"  Duplicate ID '{node.id}': {node.file_path} and {seen_ids[node.id]}")
         else:
             seen_ids[node.id] = node.file_path
 
