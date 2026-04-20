@@ -82,7 +82,7 @@ Four generated example snapshots in [`examples/`](examples/), each with specs an
 
 These examples are primarily for inspecting generated structure and spec relationships. They are not currently packaged as fully runnable standalone apps.
 
-Skill files are shared across examples via symlinks from each example's `.specdiff/skills/` to `examples/shared-skills/`.
+Skill files in each example's `.specdiff/skills/` are copies of the files in `examples/shared-skills/`. Update `shared-skills/` when improving skill content, then copy the changes into each example.
 
 ## How to Retrofit an Existing Codebase
 
