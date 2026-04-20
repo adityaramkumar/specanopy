@@ -372,7 +372,36 @@ Be strict. A partial implementation must return passed: false.
     for name, content in skills.items():
         (skills_dir / f"{name}.skill.md").write_text(content)
 
-    click.echo("Initialized empty specdiff project in .specdiff/")
+    example_spec = """\
+---
+id: behaviors/hello
+version: "1.0.0"
+parent: behaviors
+status: approved
+depends_on: []
+---
+
+## Hello World
+
+Replace this with your first real spec.
+
+### Acceptance Criteria
+
+- Given a name, the system returns "Hello, <name>!"
+- If name is empty or not provided, defaults to "Hello, World!"
+- Name is stripped of leading and trailing whitespace before use
+"""
+    behaviors_dir = specs_dir / "behaviors"
+    behaviors_dir.mkdir()
+    (behaviors_dir / "hello.spec.md").write_text(example_spec)
+
+    click.echo("Initialized .specdiff/ with config, skill files, and an example spec.\n")
+    click.echo("Next steps:")
+    click.echo("  1. Set your API key:  export GEMINI_API_KEY=your-key-here")
+    click.echo("  2. Edit .specdiff/behaviors/hello.spec.md with your first spec")
+    click.echo("  3. Run `specdiff review behaviors/hello` to validate it")
+    click.echo("  4. Run `specdiff build` to generate code")
+    click.echo("  5. Run `specdiff ui` to explore your spec graph")
 
 
 @cli.command()
