@@ -205,6 +205,25 @@ Clean complete.
 
 Use `specdiff clean <node_id>` to clean a single node. Use `--yes` to skip the confirmation prompt.
 
+### `specdiff validate`
+
+Check the spec graph for errors before running a build. Reports all issues at once — missing `depends_on` references, missing `parent` references, duplicate IDs, and circular dependencies. Exits with code 1 if any errors are found, making it usable as a CI gate.
+
+```
+$ specdiff validate
+Found 2 error(s):
+
+  behaviors/auth/login: depends_on 'contracts/api/nonexistent' not found
+  behaviors/auth/signup: parent 'auth' not found
+```
+
+On a clean graph:
+
+```
+$ specdiff validate
+Validated 5 spec(s). No issues found.
+```
+
 ### `specdiff extract [source]`
 
 Read existing code and generate spec files. This is useful for reverse-engineering an existing codebase into Specdiff specs.
