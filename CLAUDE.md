@@ -19,6 +19,12 @@ ruff check src/ tests/
 
 # Format
 ruff format src/ tests/
+
+# UI development
+cd ui && npm install && npm run dev
+
+# UI production build
+cd ui && npm run build
 ```
 
 Set `GEMINI_API_KEY` (or `XAI_API_KEY` for xAI/OpenAI-compatible models) before running the tool.
@@ -74,13 +80,44 @@ Default model is `gemini-2.5-flash`.
 
 ### CLI Commands (`cli.py`)
 
-- `build [node_id]` — generate code from specs; `--no-review` skips review stage
+- `build [node_id]` — generate code from specs; `--no-review` skips review stage; `--dry-run` previews stale nodes without invoking LLM
 - `status` — show staleness per node (new/stale/current)
+- `validate` — check graph integrity (no orphaned depends_on, no circular dependencies)
 - `impact [node_id]` — preview cascade blast radius without API calls
 - `review [node_id]` — run Spec Agent and write proposed revisions to `.specdiff/proposed/`
+- `clean [node_id]` — delete generated files and hash map entries, forcing a full rebuild
 - `ui [--port] [--no-browser]` — launch React+Vite graph visualization via `api.py`
 - `init` — scaffold `.specdiff/` with `config.yaml`, default skill files, and an example spec
 - `extract [--source .] [--granularity auto|file]` — reverse-engineer existing code into `.spec.md` files
+
+### React UI (`ui/` + `api.py`)
+
+`specdiff ui` serves a React+Vite app that visualizes the spec dependency graph in real time:
+- **`api.py`** — FastAPI backend serving `/api/graph` (nodes + edges JSON); polled every 2s by the frontend
+- **`App.jsx`** — ReactFlow canvas with minimap and controls; exponential backoff on poll errors
+- **`SpecNode.jsx`** — Custom node component (status badge, version, cascade depth)
+- **`NodeDetails.jsx`** — Sidebar showing full spec content when a node is selected
+- **`layout.js`** — Dagre-based left-to-right hierarchical layout
+
+### Spec File Format
+
+```markdown
+---
+id: behaviors/auth/login        # required; unique identifier
+version: "1.0.1"                # required; semantic version
+status: approved                # required; approved | draft | locked
+parent: auth                    # optional; parent node ID (hierarchy)
+depends_on:                     # optional; cross-branch dependencies
+  - contracts/api/users
+language: typescript            # optional; overrides config default
+---
+
+## Description
+Prose description of what this spec requires...
+```
+
+Fields that affect the SHA-256 hash (trigger rebuild): `id`, `version`, `depends_on`, `parent`, `language`, body content.
+Fields that do **not** affect the hash: `status`, `hash` (editorial-only).
 
 ### Code Conventions
 
@@ -88,3 +125,4 @@ Default model is `gemini-2.5-flash`.
 - No narrative comments — only add a comment when the *why* is non-obvious.
 - Python 3.10+ throughout; Ruff enforces style.
 - Tests use `pytest`, `unittest.mock`, and Click's `CliRunner`. Mock at the boundary of external calls (LLM clients, file I/O) rather than deep internals.
+- `extract_json(text)` in `llm.py` handles LLM responses that wrap JSON in markdown fences or append prose — use it whenever parsing agent output.
