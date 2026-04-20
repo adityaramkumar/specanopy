@@ -49,10 +49,7 @@ def clean_backups(specs_dir: Path) -> None:
 
 
 def run_tests(config: SpecdiffConfig) -> tuple[bool, str]:
-    """Run the configured test command. Returns (passed, output).
-
-    stdout/stderr stream live to the terminal so the user sees progress.
-    """
+    """Run the configured test command. Returns (passed, combined output)."""
     if not config.test_command:
         return True, ""
 

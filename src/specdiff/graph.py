@@ -42,10 +42,10 @@ def _validate_parents(graph: SpecGraph) -> None:
                 f"{node.id} declares parent '{node.parent}', but that spec does not exist."
             )
         parent = graph.nodes[node.parent]
-        if parent.status != node.status:
+        if parent.status == "locked" and node.status != "locked":
             raise ValueError(
-                f"{node.id} has status '{node.status}' which conflicts with "
-                f"parent '{parent.id}' status '{parent.status}'."
+                f"{node.id} has status '{node.status}' but parent "
+                f"'{parent.id}' is locked — unlock the parent first."
             )
 
 

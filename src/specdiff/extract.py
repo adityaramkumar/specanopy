@@ -163,7 +163,6 @@ Required Frontmatter for each spec:
 id: behaviors/<name>
 version: 1.0.0
 status: approved
-parent: behaviors
 depends_on:
   - contracts/<relevant_contract>
 ---
