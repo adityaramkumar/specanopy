@@ -108,10 +108,16 @@ def extract_json(text: str) -> dict | list:
     if fence_match:
         stripped = fence_match.group(1).strip()
 
-    # If the model added prose around the JSON, find the outermost { } or [ ]
+    # If the model added prose before the JSON, seek the first { or [ and use
+    # raw_decode so we stop at the end of the first complete JSON value rather
+    # than greedily matching to the last } or ] in the string.
     if stripped and stripped[0] not in ("{", "["):
-        obj = re.search(r"(\{.*\}|\[.*\])", stripped, re.DOTALL)
-        if obj:
-            stripped = obj.group(1).strip()
+        start = min(
+            (stripped.find(c) for c in ("{", "[") if stripped.find(c) != -1),
+            default=-1,
+        )
+        if start != -1:
+            stripped = stripped[start:]
 
-    return json.loads(stripped)
+    value, _ = json.JSONDecoder().raw_decode(stripped)
+    return value

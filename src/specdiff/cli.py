@@ -78,17 +78,27 @@ def build(node_id: str | None, no_review: bool) -> None:
 
     graph = build_graph(nodes)
 
+    stale_ids = {n.id for n in nodes if hashmap.is_stale(hm, n.id, n.hash)}
+
     if node_id:
         if node_id not in graph.nodes:
             raise click.ClickException(f"Spec node '{node_id}' not found.")
-        candidates = [graph.nodes[node_id]]
+        target = graph.nodes[node_id]
+        # A targeted node must rebuild if it or any of its direct dependencies
+        # are stale, even if its own hash hasn't changed.
+        dep_stale = any(d in stale_ids for d in target.depends_on)
+        if target.id in stale_ids or dep_stale:
+            stale_ids.add(target.id)
+        stale = [target] if target.id in stale_ids else []
     else:
-        candidates = nodes
+        stale = [n for n in nodes if n.id in stale_ids]
 
-    stale = [n for n in candidates if hashmap.is_stale(hm, n.id, n.hash)]
     if not stale:
         click.echo("Everything is up to date.")
         return
+
+    ordered_ids = cascade(graph, [n.id for n in stale], stale_ids=stale_ids)
+    ordered_nodes = [graph.nodes[nid] for nid in ordered_ids]
 
     if config.review_before_build:
         try:
@@ -96,7 +106,7 @@ def build(node_id: str | None, no_review: bool) -> None:
         except FileNotFoundError as exc:
             raise click.ClickException(str(exc)) from exc
 
-        for node in stale:
+        for node in ordered_nodes:
             click.echo(f"  Reviewing {node.id}...")
             result = review_spec(node, skill, config)
             if not result.passed:
@@ -105,10 +115,6 @@ def build(node_id: str | None, no_review: bool) -> None:
                 raise click.ClickException(
                     f"Spec '{node.id}' failed review. Run `specdiff review` to see suggestions."
                 )
-
-    stale_ids = {n.id for n in nodes if hashmap.is_stale(hm, n.id, n.hash)}
-    ordered_ids = cascade(graph, [n.id for n in stale], stale_ids=stale_ids)
-    ordered_nodes = [graph.nodes[nid] for nid in ordered_ids]
 
     click.echo(f"Building {len(ordered_nodes)} node(s)...\n")
 

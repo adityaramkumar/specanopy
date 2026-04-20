@@ -44,8 +44,10 @@ def parse_spec_file(file_path: Path) -> SpecNode:
 
 
 def discover_specs(root_dir: Path) -> list[SpecNode]:
-    """Find and parse all *.spec.md files under root_dir."""
+    """Find and parse all *.spec.md files under root_dir, excluding proposed/."""
     nodes: list[SpecNode] = []
     for path in sorted(root_dir.rglob("*.spec.md")):
+        if "proposed" in path.parts:
+            continue
         nodes.append(parse_spec_file(path))
     return nodes

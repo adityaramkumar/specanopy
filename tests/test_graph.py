@@ -61,11 +61,17 @@ class TestParentValidation:
         with pytest.raises(ValueError, match="declares parent 'nonexistent'"):
             build_graph([child])
 
-    def test_status_conflict(self):
+    def test_locked_parent_blocks_non_locked_child(self):
         parent = _make_node("auth", status="locked")
         child = _make_node("auth/login", parent="auth", status="draft")
-        with pytest.raises(ValueError, match="conflicts with parent"):
+        with pytest.raises(ValueError, match="is locked"):
             build_graph([parent, child])
+
+    def test_approved_parent_allows_draft_child(self):
+        parent = _make_node("auth", status="approved")
+        child = _make_node("auth/login", parent="auth", status="draft")
+        graph = build_graph([parent, child])
+        assert "auth/login" in graph.nodes
 
     def test_matching_status_ok(self):
         parent = _make_node("auth", status="approved")
