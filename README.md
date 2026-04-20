@@ -178,6 +178,22 @@ Starting Specdiff Graph UI Server at http://localhost:8000
 
 The UI displays the dependency graph, visualizes stale/current status, and shows the cascade depth blast radius for any potential changes. It automatically polls for changes as you edit specs.
 
+### `specdiff clean [node_id]`
+
+Delete generated files tracked in the hash map and remove their entries, so they will be fully rebuilt on the next `specdiff build`. Useful after changing agents, skill files, or models.
+
+```
+$ specdiff clean
+Remove 3 node(s) and 6 generated file(s) from the hash map? [y/N]: y
+  [contracts/api/users] cleaned (2 file(s) removed)
+  [behaviors/auth/login] cleaned (2 file(s) removed)
+  [behaviors/auth/signup] cleaned (2 file(s) removed)
+
+Clean complete.
+```
+
+Use `specdiff clean <node_id>` to clean a single node. Use `--yes` to skip the confirmation prompt.
+
 ### `specdiff extract [source]`
 
 Read existing code and generate spec files. This is useful for reverse-engineering an existing codebase into Specdiff specs.
